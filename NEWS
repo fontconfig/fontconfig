@@ -1,11 +1,52 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.18.2
-                              2026-07-09
+                            Version 2.18.3
+                              2026-08-06
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.18.3
+
+Akira TAGOH (33):
+      ci: Add --werror option to the build script
+      fc-cat: exit with non-zero if not successfully done
+      Workaround a longstanding use-after-free warning
+      Fix a null pointer dereference
+      Add Noto Sans as system-ui for fallback
+      Drop Noto Sans CJK KR from 60-nonlatin.conf
+      Correct sat.orth
+      Add an orth file for Balinese
+      Update orth files for jv, so, su, tl to use native scripts
+      Add orth files for scripts used by Noto font families
+      Update mni.orth to use Meetei Mayek script
+      Add orth files for Cuneiform languages (akk, sux, hit)
+      ci: Suppress abidiff false positives for all internal structs
+      test: Add cache format compatibility tests for orth file additions
+      Add orth files for ancient scripts (xna, hlu, ecy)
+      fc-cache: Create backward-compatible cache symlinks for cross-version discovery
+      ci: Update dependencies
+      Add implicit rule to update genericfamily property against syntactic-sugar
+      fc-genconf: Use alias syntactic-sugar instead of the pair of test-edit config
+      Allow to limit the targeted family for TTC
+      test: Fix test_genconf.py to avoid unexpected family name in testing conf
+      ci: Enable -Werror in CI
+      ci: drop duplicate pipelines
+      ci: cleanup
+      ci: gate distro jobs until all tests passed
+      ci: reduce more duplicate jobs
+      ci: Update base ci-templates
+      test: Fix compiler warnings
+      fc-fontations: Allow unnecessary_transmutes lint in bindgen-generated Rust code
+      Fix another compiler warnings
+      ci: Bump FreeBSD version to 14.4
+      Fix the compiler warnings on MinGW
+      Update INSTALL
+
+Julien Nabet (2):
+      Fix "FileType is deprecated"
+      Fix unknown type name locale_t on macOS
 
 2.18.2
 
