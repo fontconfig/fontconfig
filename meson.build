@@ -493,6 +493,8 @@ conf.set('FC_GPERF_SIZE_T', gperf_len_type,
          description : 'The type of gperf "len" parameter')
 
 conf.set('_GNU_SOURCE', true)
+conf.set('_FILE_OFFSET_BITS', 64)
+conf.set('_TIME_BITS', 64)
 
 conf.set_quoted('GETTEXT_PACKAGE', meson.project_name())
 
