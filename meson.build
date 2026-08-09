@@ -572,6 +572,7 @@ fontconfig_dep = declare_dependency(link_with: libfontconfig,
   include_directories: incbase,
   dependencies: deps,
 )
+meson.override_dependency('fontconfig', fontconfig_dep)
 
 pkgmod.generate(libfontconfig,
   description: 'Font configuration and customization library',
