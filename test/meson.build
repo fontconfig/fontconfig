@@ -27,6 +27,7 @@ tests = [
   ['test-family-matching.c'],
   ['test-ptrlist.c', {'include_directories': include_directories('../src'), 'dependencies': libintl_dep}],
   ['test-ostest.c'],
+  ['test-y2038.c', {'include_directories': include_directories('../src'), 'dependencies': libintl_dep}],
 ]
 tests_build_only = [
   ['test-gen-testcache.c', {'include_directories': include_directories('../src'), 'dependencies': libintl_dep}],

@@ -26,6 +26,7 @@
 #include "fcmd5.h"
 
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HAVE_DIRENT_H
@@ -117,11 +118,11 @@ bail:
 #ifdef HAVE_SYMLINK
 static FcChar8 *
 FcDirCacheReplaceVersion (const FcChar8 *cache_base,
-			  FcChar8 compat_base[CACHEBASE_LEN],
-			  int version)
+                          FcChar8        compat_base[CACHEBASE_LEN],
+                          int            version)
 {
     const char *suffix = strstr ((const char *)cache_base, ".cache-");
-    size_t	prefix_len;
+    size_t      prefix_len;
 
     if (!suffix)
 	return NULL;
@@ -792,9 +793,9 @@ FcCacheFini (void)
 static FcBool
 FcCacheIsNewVersion (FcConfig *config, FcCache *cache)
 {
-    int64_t version = (FC_VERSION_MAJOR << 24) +
-                      (FC_VERSION_MINOR << 12) +
-                      FC_VERSION_MICRO;
+    int64_t       version = (FC_VERSION_MAJOR << 24) +
+                            (FC_VERSION_MINOR << 12) +
+                            FC_VERSION_MICRO;
     static FcBool warn = FcFalse;
     static FcBool flag = FcFalse, is_initialized = FcFalse;
 
@@ -815,6 +816,9 @@ FcCacheIsNewVersion (FcConfig *config, FcCache *cache)
 
     return cache->fc_version > version;
 }
+
+static int64_t FcDirMtime (struct stat *statb);
+static int64_t FcCacheGetChecksum (FcCache *cache);
 
 static FcBool
 FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
@@ -840,15 +844,22 @@ FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
 #ifdef HAVE_STRUCT_STAT_ST_MTIM
     fnano = (cache->checksum_nano == dir_stat->st_mtim.tv_nsec);
     if (FcDebug() & FC_DBG_CACHE)
-	printf ("FcCacheTimeValid dir \"%s\" cache checksum %d.%ld dir checksum %d.%ld\n",
-	        FcCacheDir (cache), cache->checksum, (long)cache->checksum_nano, (int)dir_stat->st_mtime, dir_stat->st_mtim.tv_nsec);
+	printf ("FcCacheTimeValid dir \"%s\" cache checksum %" PRIi64 ".%ld dir checksum %" PRIi64 ".%ld\n",
+	        FcCacheDir (cache),
+	        FcCacheGetChecksum (cache),
+	        (long)cache->checksum_nano,
+	        (int64_t)dir_stat->st_mtime, dir_stat->st_mtim.tv_nsec);
 #else
     if (FcDebug() & FC_DBG_CACHE)
-	printf ("FcCacheTimeValid dir \"%s\" cache checksum %d dir checksum %d\n",
-	        FcCacheDir (cache), cache->checksum, (int)dir_stat->st_mtime);
+	printf ("FcCacheTimeValid dir \"%s\" cache checksum %" PRIi64 " dir checksum %" PRIi64 "\n",
+	        FcCacheDir (cache),
+	        FcCacheGetChecksum (cache),
+	        (int64_t)dir_stat->st_mtime);
 #endif
-
-    return dir_stat->st_mtime == 0 || (cache->checksum == (int)dir_stat->st_mtime && fnano);
+    {
+	int64_t cache_mtime = FcCacheGetChecksum (cache);
+	return dir_stat->st_mtime == 0 || (cache_mtime == (int64_t)dir_stat->st_mtime && fnano);
+    }
 }
 
 static FcBool
@@ -1186,39 +1197,58 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
     return cache;
 }
 
-static int
-FcDirChecksum (struct stat *statb)
+static int64_t
+FcDirMtime (struct stat *statb)
 {
-    int                ret = (int)statb->st_mtime;
-    char              *endptr;
-    char              *source_date_epoch;
-    unsigned long long epoch;
+    int64_t   ret = (int64_t)statb->st_mtime;
+    char     *endptr;
+    char     *source_date_epoch;
+    uintmax_t epoch;
 
     source_date_epoch = getenv ("SOURCE_DATE_EPOCH");
     if (source_date_epoch) {
 	errno = 0;
-	epoch = strtoull (source_date_epoch, &endptr, 10);
+	epoch = strtoumax (source_date_epoch, &endptr, 10);
 
 	if (endptr == source_date_epoch)
 	    fprintf (stderr,
 	             "Fontconfig: SOURCE_DATE_EPOCH invalid\n");
-	else if ((errno == ERANGE && (epoch == ULLONG_MAX || epoch == 0)) || (errno != 0 && epoch == 0))
+	else if ((errno == ERANGE && (epoch == UINTMAX_MAX || epoch == 0)) || (errno != 0 && epoch == 0))
 	    fprintf (stderr,
-	             "Fontconfig: SOURCE_DATE_EPOCH: strtoull: %s: %" FC_UINT64_FORMAT "\n",
+	             "Fontconfig: SOURCE_DATE_EPOCH: strtoumax: %s: %" PRIuMAX "\n",
 	             strerror (errno), epoch);
 	else if (*endptr != '\0')
 	    fprintf (stderr,
 	             "Fontconfig: SOURCE_DATE_EPOCH has trailing garbage\n");
-	else if (epoch > ULONG_MAX)
+	else if (epoch > INT64_MAX)
 	    fprintf (stderr,
-	             "Fontconfig: SOURCE_DATE_EPOCH must be <= %lu but saw: %" FC_UINT64_FORMAT "\n",
-	             ULONG_MAX, epoch);
-	else if (epoch < ret)
+	             "Fontconfig: SOURCE_DATE_EPOCH must be <= %" PRIi64 " but saw: %" PRIuMAX "\n",
+	             INT64_MAX, epoch);
+	else if ((int64_t)epoch < ret) {
 	    /* Only override if directory is newer */
-	    ret = (int)epoch;
+	    ret = (int64_t)epoch;
+	}
     }
 
     return ret;
+}
+
+static uint32_t
+FcDirChecksum (struct stat *statb)
+{
+    return (uint32_t)(FcDirMtime (statb) & 0xFFFFFFFF);
+}
+
+static uint32_t
+FcDirChecksumHigh (struct stat *statb)
+{
+    return (uint32_t)(FcDirMtime (statb) >> 32);
+}
+
+static int64_t
+FcCacheGetChecksum (FcCache *cache)
+{
+    return ((int64_t)cache->checksum_hi << 32) | cache->checksum;
 }
 
 static int64_t
@@ -1252,7 +1282,7 @@ FcDirCacheValidateHelper (FcConfig *config, int fd, struct stat *fd_stat, struct
 	ret = FcFalse;
     else if (fd_stat->st_size != c.size)
 	ret = FcFalse;
-    else if (c.checksum != FcDirChecksum (dir_stat))
+    else if (FcCacheGetChecksum (&c) != FcDirMtime (dir_stat))
 	ret = FcFalse;
 #ifdef HAVE_STRUCT_STAT_ST_MTIM
     else if (c.checksum_nano != FcDirChecksumNano (dir_stat))
@@ -1336,10 +1366,11 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
     cache->version = FC_CACHE_VERSION_NUMBER;
     cache->size = serialize->size;
     cache->checksum = FcDirChecksum (dir_stat);
+    cache->checksum_hi = FcDirChecksumHigh (dir_stat);
     cache->checksum_nano = FcDirChecksumNano (dir_stat);
     cache->fc_version = (FC_VERSION_MAJOR << 24) +
-	               (FC_VERSION_MINOR << 12) +
-	               FC_VERSION_MICRO;
+                        (FC_VERSION_MINOR << 12) +
+                        FC_VERSION_MICRO;
 
     /*
      * Serialize directory name
@@ -1564,7 +1595,7 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
 	    if (symlink ((char *)cache_base, (char *)compat_path) < 0) {
 		if (FcDebug() & FC_DBG_CACHE)
 		    printf ("FcDirCacheWrite: symlink %s -> %s failed\n",
-			    compat_path, cache_base);
+		            compat_path, cache_base);
 	    }
 	    FcStrFree (compat_path);
 	}
@@ -1593,10 +1624,10 @@ static int
 FcCacheFileVersion (const char *name)
 {
     const char *arch_suffix = "-" FC_ARCHITECTURE ".cache-";
-    size_t	arch_suffix_len = strlen (arch_suffix);
+    size_t      arch_suffix_len = strlen (arch_suffix);
     const char *version_str;
     char       *end;
-    long	version;
+    long        version;
 
     if (strlen (name) < 32 + arch_suffix_len + 1)
 	return -1;
