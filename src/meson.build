@@ -9,15 +9,22 @@ endif
 # Factor our pattern manipulation code into its own library
 # to break the depedency cycle:
 # FontConfig pattern handling - Fontations code - FontConfig.
-pattern_sources = [ 'fcpat.c', fcstdint_h, fclang_h, alias_headers, ft_alias_headers ]
-pattern_lib = static_library('patternlib_internal',
-                                    pattern_sources,
-                                    include_directories: incbase,
-                                    dependencies: [deps],
-                                    c_args: win_export_args
-                    )
+pattern_sources = [
+  'fcpat.c',
+  fcstdint_h,
+  fclang_h,
+  alias_headers,
+  ft_alias_headers,
+]
+pattern_lib = static_library(
+  'patternlib_internal',
+  pattern_sources,
+  include_directories: incbase,
+  dependencies: [deps],
+  c_args: win_export_args,
+)
 
-fc_sources = files([
+fc_sources = files(
   'fcatomic.c',
   'fccache.c',
   'fccfg.c',
@@ -47,13 +54,16 @@ fc_sources = files([
   'fcweight.c',
   'fcxml.c',
   'ftglue.c',
-])
+)
 
 
 
-fcobjshash_h = cc.preprocess('fcobjshash.gperf.h', include_directories: incbase)
+fcobjshash_gperf_i = cc.preprocess(
+  'fcobjshash.gperf.c',
+  include_directories: incbase,
+)
 fcobjshash_gperf = custom_target(
-  input: fcobjshash_h,
+  input: fcobjshash_gperf_i,
   output: 'fcobjshash.gperf',
   command: ['cutout.py', '@INPUT@', '@OUTPUT@'],
   build_by_default: true,
