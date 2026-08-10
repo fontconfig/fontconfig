@@ -89,6 +89,50 @@ check-ci-script:
         "https://freedesktop.pages.freedesktop.org/ci-templates/ci-fairy.html#templating-gitlab-ci-yml"
     - exit 1
 
+lint-changelog-trailer:
+  stage: sanity check
+  image: alpine:latest
+  variables:
+    GIT_DEPTH: 0
+  before_script:
+    - apk add --no-cache git
+  script:
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - COMMIT_SHAs=$(git log origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD --format="%H")
+    - ALL_SKIPPED=true
+    - TRAILER_FOUND=false
+    - |
+      for sha in $COMMIT_SHAs; do
+        COMMIT_SUMMARY=$(git log -n 1 --format="%s" $sha)
+        COMMIT_BODY=$(git log -n 1 --format="%B" $sha)
+        if echo "$COMMIT_SUMMARY" | grep -Eiq "^ci:"; then
+          echo "ℹ️ Skipping ci commit: '$COMMIT_SUMMARY'"
+          continue
+        fi
+        ALL_SKIPPED=false
+        if echo "$COMMIT_BODY" | git interpret-trailers --parse | grep -Eiq "^Changelog\s*:"; then
+          TRAILER_FOUND=true
+          break
+        fi
+      done
+    - |
+      if [ "$ALL_SKIPPED" = true ]; then
+        echo "✅ All commits are ci-only, skipping trailer enforcement."
+      elif [ "$TRAILER_FOUND" = false ]; then
+        echo "❌ ERROR: No 'Changelog:' trailer found in your MR commits!"
+        echo "Please add a trailer to your commit message (e.g., 'Changelog: fixed')."
+        echo "See https://docs.gitlab.com/user/project/changelogs/"
+        echo "If it is not worth advertising, set skip-changelog label"
+        exit 1
+      else
+        echo "✅ Changelog trailer found."
+      fi
+  rules:
+    - if: $CI_MERGE_REQUEST_IID && $CI_MERGE_REQUEST_LABELS =~ /(^|,)skip-changelog(,|$)/
+      when: never
+    - if: $CI_MERGE_REQUEST_IID
+      when: on_success
+
 #######################################
 #                                     #
 #          containers stage           #
