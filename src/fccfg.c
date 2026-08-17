@@ -2904,8 +2904,12 @@ FcConfigGlobAdd (FcConfig      *config,
      * current directory name if no path included in a string.
      * This isn't a desired behavior here.
      * So drop the extra path name if they have. Otherwise use it as it is.
+     *
+     * realglob is NULL when ~ cannot be expanded, or on allocation
+     * failure. There is nothing to strip a prefix off in that case, so
+     * fall back to the glob as given.
      */
-    if (cwd == NULL)
+    if (!cwd || !realglob)
 	s = glob;
     else {
 	len = strlen ((const char *)cwd);
@@ -2918,8 +2922,6 @@ FcConfigGlobAdd (FcConfig      *config,
 	else
 	    s = realglob;
     }
-    if (!s)
-	return FcFalse;
 
     ret = FcStrSetAdd (set, s);
     FcStrFree (realglob);
