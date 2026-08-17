@@ -272,7 +272,7 @@ class FcTest:
             self.__bind = None
             self._env["FONTCONFIG_FILE"] = self._conffile.name
 
-    def run(self, binary, args=[], debug=False) -> Iterator[[int, str, str]]:
+    def run(self, binary, args=[], debug=False, cwd=None) -> Iterator[[int, str, str]]:
         cmd = []
         if self._exewrapper:
             cmd += [self._exewrapper]
@@ -308,7 +308,7 @@ class FcTest:
                 boxed += ["--setenv", "FC_FONTATIONS", "1"]
             boxed += cmd
             self.logger.info(boxed)
-            res = subprocess.run(boxed, capture_output=True, env=self._env)
+            res = subprocess.run(boxed, capture_output=True, env=self._env, cwd=cwd)
         else:
             origdebug = self._env.get("FC_DEBUG")
             if debug:
@@ -317,7 +317,7 @@ class FcTest:
             if self.with_fontations:
                 self._env["FC_FONTATIONS"] = "1"
             self.logger.info(cmd)
-            res = subprocess.run(cmd, capture_output=True, env=self._env)
+            res = subprocess.run(cmd, capture_output=True, env=self._env, cwd=cwd)
             if debug:
                 if origdebug:
                     self._env["FC_DEBUG"] = origdebug
@@ -330,8 +330,8 @@ class FcTest:
                     del self._env["FC_FONTATIONS"]
         yield res.returncode, res.stdout.decode("utf-8"), res.stderr.decode("utf-8")
 
-    def run_cache(self, args, debug=False) -> Iterator[[int, str, str]]:
-        return self.run(self._fccache, args, debug)
+    def run_cache(self, args, debug=False, cwd=None) -> Iterator[[int, str, str]]:
+        return self.run(self._fccache, args, debug, cwd)
 
     def run_cat(self, args, debug=False) -> Iterator[[int, str, str]]:
         return self.run(self._fccat, args, debug)
