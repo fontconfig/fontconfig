@@ -2894,36 +2894,49 @@ FcConfigGlobAdd (FcConfig      *config,
 {
     FcStrSet      *set = accept ? config->acceptGlobs : config->rejectGlobs;
     FcChar8       *realglob = FcStrCopyFilename (glob);
-    FcChar8       *cwd = FcStrCopyFilename ((const FcChar8 *)".");
+    FcChar8       *cwd = NULL;
     const FcChar8 *s;
     FcBool         ret;
-    size_t         len = 0;
 
     /*
      * FcStrCopyFilename canonicalize a path string and prepend
      * current directory name if no path included in a string.
      * This isn't a desired behavior here.
      * So drop the extra path name if they have. Otherwise use it as it is.
+     *
+     * Only a relative glob can have gained that prefix. An absolute one
+     * has to be kept as it is, otherwise the code below would strip its
+     * leading components whenever the current directory happens to be a
+     * lexical prefix of it. That is particularly harmful when running from
+     * the root directory, where FcStrCopyFilename(".") gives an empty
+     * string and every absolute glob would then lose its leading '/'.
      */
-    if (cwd == NULL)
-	s = glob;
-    else {
-	len = strlen ((const char *)cwd);
-	/* No need to use FC_DIR_SEPARATOR because '\\' will be
-	 * replaced with / by FcConvertDosPath in FcStrCanonFilename
-	 */
-	if (strncmp ((const char *)cwd, (const char *)realglob, len) == 0 &&
-	    realglob[len] == '/')
-	    s = &realglob[len + 1];
-	else
-	    s = realglob;
+    if (FcStrIsAbsoluteFilename (glob) || FcStrUsesHome (glob)) {
+	/* Nothing to fall back on when ~ cannot be expanded */
+	if (!realglob)
+	    return FcFalse;
+	s = realglob;
+    } else {
+	cwd = FcStrCopyFilename ((const FcChar8 *)".");
+	if (!cwd || !realglob)
+	    s = glob;
+	else {
+	    size_t len = strlen ((const char *)cwd);
+	    /* No need to use FC_DIR_SEPARATOR because '\\' will be
+	     * replaced with / by FcConvertDosPath in FcStrCanonFilename
+	     */
+	    if (strncmp ((const char *)cwd, (const char *)realglob, len) == 0 &&
+	        realglob[len] == '/')
+		s = &realglob[len + 1];
+	    else
+		s = realglob;
+	}
     }
-    if (!s)
-	return FcFalse;
 
     ret = FcStrSetAdd (set, s);
     FcStrFree (realglob);
-    FcStrFree (cwd);
+    if (cwd)
+	FcStrFree (cwd);
     return ret;
 }
 
