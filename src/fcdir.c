@@ -70,10 +70,10 @@ FcFileIsFile (const FcChar8 *file)
     return S_ISREG (statb.st_mode);
 }
 
-static FcBool
-FcFileScanFontConfig (FcFontSet     *set,
-                      const FcChar8 *file,
-                      FcConfig      *config)
+FcBool
+FcFileScanFontFile (FcFontSet     *set,
+                    const FcChar8 *file,
+                    FcConfig      *config)
 {
     int            i;
     FcBool         ret = FcTrue;
@@ -166,7 +166,7 @@ FcFileScanConfig (FcFontSet     *set,
 	return FcStrSetAdd (dirs, d);
     } else {
 	if (set)
-	    return FcFileScanFontConfig (set, file, config);
+	    return FcFileScanFontFile (set, file, config);
 	else
 	    return FcTrue;
     }

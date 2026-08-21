@@ -146,9 +146,11 @@ FcConfigCreate (void)
     FcMatchKind k;
     FcBool      err = FcFalse;
 
-    config = malloc (sizeof (FcConfig));
+    config = calloc (1, sizeof (FcConfig));
     if (!config)
 	goto bail0;
+    FcRefInit (&config->ref, 1);
+    FcObjectInit();
 
     config->configDirs = FcStrSetCreate();
     if (!config->configDirs)
@@ -156,31 +158,31 @@ FcConfigCreate (void)
 
     config->configFiles = FcStrSetCreate();
     if (!config->configFiles)
-	goto bail2;
+	goto bail1;
 
-    config->fontDirs = FcStrSetCreate();
+    config->fontDirs = FcStrSetCreateEx (FCSS_TRIPLE);
     if (!config->fontDirs)
-	goto bail3;
+	goto bail1;
 
     config->acceptGlobs = FcStrSetCreate();
     if (!config->acceptGlobs)
-	goto bail4;
+	goto bail1;
 
     config->rejectGlobs = FcStrSetCreate();
     if (!config->rejectGlobs)
-	goto bail5;
+	goto bail1;
 
     config->acceptPatterns = FcFontSetCreate();
     if (!config->acceptPatterns)
-	goto bail6;
+	goto bail1;
 
     config->rejectPatterns = FcFontSetCreate();
     if (!config->rejectPatterns)
-	goto bail7;
+	goto bail1;
 
     config->cacheDirs = FcStrSetCreate();
     if (!config->cacheDirs)
-	goto bail8;
+	goto bail1;
 
     for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++) {
 	config->subst[k] = FcPtrListCreate (FcDestroyAsRuleSet);
@@ -188,7 +190,7 @@ FcConfigCreate (void)
 	    err = FcTrue;
     }
     if (err)
-	goto bail9;
+	goto bail1;
 
     config->maxObjects = 0;
     for (set = FcSetSystem; set <= FcSetApplication; set++)
@@ -203,10 +205,10 @@ FcConfigCreate (void)
 
     config->rulesetList = FcPtrListCreate (FcDestroyAsRuleSet);
     if (!config->rulesetList)
-	goto bail9;
+	goto bail1;
     config->availConfigFiles = FcStrSetCreate();
     if (!config->availConfigFiles)
-	goto bail10;
+	goto bail1;
 
     config->filter_func = NULL;
     config->filter_data = NULL;
@@ -219,34 +221,14 @@ FcConfigCreate (void)
     config->prefer_app_fonts = FcFalse;
     config->warns = 0;
 
-    FcRefInit (&config->ref, 1);
-    FcObjectInit();
+    config->appFonts = FcStrSetCreate();
+    if (!config->appFonts)
+	goto bail1;
 
     return config;
 
-bail10:
-    FcPtrListDestroy (config->rulesetList);
-bail9:
-    for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
-	if (config->subst[k])
-	    FcPtrListDestroy (config->subst[k]);
-    FcStrSetDestroy (config->cacheDirs);
-bail8:
-    FcFontSetDestroy (config->rejectPatterns);
-bail7:
-    FcFontSetDestroy (config->acceptPatterns);
-bail6:
-    FcStrSetDestroy (config->rejectGlobs);
-bail5:
-    FcStrSetDestroy (config->acceptGlobs);
-bail4:
-    FcStrSetDestroy (config->fontDirs);
-bail3:
-    FcStrSetDestroy (config->configFiles);
-bail2:
-    FcStrSetDestroy (config->configDirs);
 bail1:
-    free (config);
+    FcConfigDestroy (config);
 bail0:
     return 0;
 }
@@ -274,7 +256,7 @@ FcConfigNewestFile (FcStrSet *files)
 FcBool
 FcConfigUptoDate (FcConfig *config)
 {
-    FcFileTime config_time, config_dir_time, font_time;
+    FcFileTime config_time, config_dir_time, font_time, app_fonts_time;
     time_t     now = time (0);
     FcBool     ret = FcTrue;
 
@@ -285,13 +267,16 @@ FcConfigUptoDate (FcConfig *config)
     config_time = FcConfigNewestFile (config->configFiles);
     config_dir_time = FcConfigNewestFile (config->configDirs);
     font_time = FcConfigNewestFile (config->fontDirs);
+    app_fonts_time = FcConfigNewestFile (config->appFonts);
     if ((config_time.set && config_time.time - config->rescanTime > 0) ||
         (config_dir_time.set && (config_dir_time.time - config->rescanTime) > 0) ||
-        (font_time.set && (font_time.time - config->rescanTime) > 0)) {
+        (font_time.set && (font_time.time - config->rescanTime) > 0) ||
+        (app_fonts_time.set && (app_fonts_time.time - config->rescanTime) > 0)) {
 	/* We need to check for potential clock problems here (OLPC ticket #6046) */
 	if ((config_time.set && (config_time.time - now) > 0) ||
 	    (config_dir_time.set && (config_dir_time.time - now) > 0) ||
-	    (font_time.set && (font_time.time - now) > 0)) {
+	    (font_time.set && (font_time.time - now) > 0) ||
+	    (app_fonts_time.set && (app_fonts_time.time - now) > 0)) {
 	    fprintf (stderr,
 	             "Fontconfig warning: Directory/file mtime in the future. New fonts may not be detected.\n");
 	    config->rescanTime = now;
@@ -370,22 +355,35 @@ FcConfigDestroy (FcConfig *config)
 	FcObjectFini();
 	(void)fc_atomic_ptr_cmpexch (&_fcConfig, config, NULL);
 
-	FcStrSetDestroy (config->configDirs);
-	FcStrSetDestroy (config->fontDirs);
-	FcStrSetDestroy (config->cacheDirs);
-	FcStrSetDestroy (config->configFiles);
-	FcStrSetDestroy (config->acceptGlobs);
-	FcStrSetDestroy (config->rejectGlobs);
-	FcFontSetDestroy (config->acceptPatterns);
-	FcFontSetDestroy (config->rejectPatterns);
+	if (config->configDirs)
+	    FcStrSetDestroy (config->configDirs);
+	if (config->fontDirs)
+	    FcStrSetDestroy (config->fontDirs);
+	if (config->cacheDirs)
+	    FcStrSetDestroy (config->cacheDirs);
+	if (config->configFiles)
+	    FcStrSetDestroy (config->configFiles);
+	if (config->acceptGlobs)
+	    FcStrSetDestroy (config->acceptGlobs);
+	if (config->rejectGlobs)
+	    FcStrSetDestroy (config->rejectGlobs);
+	if (config->acceptPatterns)
+	    FcFontSetDestroy (config->acceptPatterns);
+	if (config->rejectPatterns)
+	    FcFontSetDestroy (config->rejectPatterns);
 
-	for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
-	    FcPtrListDestroy (config->subst[k]);
-	FcPtrListDestroy (config->rulesetList);
-	FcStrSetDestroy (config->availConfigFiles);
-	for (set = FcSetSystem; set <= FcSetApplication; set++)
+	for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++) {
+	    if (config->subst[k])
+		FcPtrListDestroy (config->subst[k]);
+	}
+	if (config->rulesetList)
+	    FcPtrListDestroy (config->rulesetList);
+	if (config->availConfigFiles)
+	    FcStrSetDestroy (config->availConfigFiles);
+	for (set = FcSetSystem; set <= FcSetApplication; set++) {
 	    if (config->fonts[set])
 		FcFontSetDestroy (config->fonts[set]);
+	}
 
 	page = config->expr_pool;
 	while (page) {
@@ -409,6 +407,8 @@ FcConfigDestroy (FcConfig *config)
 	    FcStrFree (config->prgname);
 	if (config->desktop_name)
 	    FcStrFree (config->desktop_name);
+	if (config->appFonts)
+	    FcStrSetDestroy (config->appFonts);
 
 	free (config);
     }
@@ -503,7 +503,10 @@ FcConfigAddCache (FcConfig *config, FcCache *cache,
 		FcStrFree (base);
 	    }
 	    if (FcConfigAcceptFilename (config, dir)) {
-		FcStrSetAddTriple (dirSet, dir, NULL, NULL);
+		if (FcStrSetHasControlBit (dirSet, FCSS_TRIPLE))
+		    FcStrSetAddTriple (dirSet, dir, NULL, NULL);
+		else
+		    FcStrSetAdd (dirSet, dir);
 	    }
 	    if (s)
 		FcStrFree (s);
@@ -664,6 +667,20 @@ FcConfigGetFontDirs (FcConfig *config)
     if (!config)
 	return NULL;
     ret = FcStrListCreate (config->fontDirs);
+    FcConfigDestroy (config);
+
+    return ret;
+}
+
+FcStrList *
+FcConfigGetAppFonts (FcConfig *config)
+{
+    FcStrList *ret;
+
+    config = FcConfigReference (config);
+    if (!config)
+	return NULL;
+    ret = FcStrListCreate (config->appFonts);
     FcConfigDestroy (config);
 
     return ret;
@@ -2717,44 +2734,33 @@ FcConfigAppFontAddFile (FcConfig      *config,
                         const FcChar8 *file)
 {
     FcFontSet *set;
-    FcStrSet  *subdirs;
-    FcStrList *sublist;
-    FcChar8   *subdir;
     FcBool     ret = FcTrue;
+
+    if (FcFileIsDir (file))
+	return FcConfigAppFontAddDir (config, file);
 
     config = FcConfigReference (config);
     if (!config)
 	return FcFalse;
 
-    subdirs = FcStrSetCreateEx (FCSS_GROW_BY_64);
-    if (!subdirs) {
-	ret = FcFalse;
-	goto bail;
-    }
-
     set = FcConfigGetFonts (config, FcSetApplication);
     if (!set) {
 	set = FcFontSetCreate();
 	if (!set) {
-	    FcStrSetDestroy (subdirs);
 	    ret = FcFalse;
 	    goto bail;
 	}
 	FcConfigSetFonts (config, set, FcSetApplication);
     }
 
-    if (!FcFileScanConfig (set, subdirs, file, config)) {
-	FcStrSetDestroy (subdirs);
+    if (!FcFileScanFontFile (set, file, config)) {
 	ret = FcFalse;
 	goto bail;
     }
-    if ((sublist = FcStrListCreate (subdirs))) {
-	while ((subdir = FcStrListNext (sublist))) {
-	    FcConfigAppFontAddDir (config, subdir);
-	}
-	FcStrListDone (sublist);
+    if (!FcStrSetAddFilename (config->appFonts, file)) {
+	ret = FcFalse;
+	goto bail;
     }
-    FcStrSetDestroy (subdirs);
 bail:
     FcConfigDestroy (config);
 
@@ -2768,6 +2774,9 @@ FcConfigAppFontAddDir (FcConfig      *config,
     FcFontSet *set;
     FcStrSet  *dirs;
     FcBool     ret = FcTrue;
+
+    if (FcFileIsFile (dir))
+	return FcConfigAppFontAddFile (config, dir);
 
     config = FcConfigReference (config);
     if (!config)
@@ -2783,20 +2792,25 @@ FcConfigAppFontAddDir (FcConfig      *config,
     if (!set) {
 	set = FcFontSetCreate();
 	if (!set) {
-	    FcStrSetDestroy (dirs);
 	    ret = FcFalse;
-	    goto bail;
+	    goto bail2;
 	}
 	FcConfigSetFonts (config, set, FcSetApplication);
     }
 
-    FcStrSetAddFilename (dirs, dir);
-
-    if (!FcConfigAddDirList (config, FcSetApplication, dirs)) {
-	FcStrSetDestroy (dirs);
+    if (!FcStrSetAddFilename (dirs, dir)) {
 	ret = FcFalse;
-	goto bail;
+	goto bail2;
     }
+    if (!FcStrSetAddFilename (config->appFonts, dir)) {
+	ret = FcFalse;
+	goto bail2;
+    }
+    if (!FcConfigAddDirList (config, FcSetApplication, dirs)) {
+	ret = FcFalse;
+	goto bail2;
+    }
+bail2:
     FcStrSetDestroy (dirs);
 bail:
     FcConfigDestroy (config);
@@ -2811,6 +2825,7 @@ FcConfigAppFontClear (FcConfig *config)
     if (!config)
 	return;
 
+    FcStrSetDeleteAll (config->appFonts);
     FcConfigSetFonts (config, 0, FcSetApplication);
 
     FcConfigDestroy (config);

@@ -409,15 +409,16 @@ struct _FcCharSet {
     intptr_t numbers_offset;
 };
 
-#define FcCharSetLeaves(c)  FcOffsetMember (c, leaves_offset, intptr_t)
-#define FcCharSetLeaf(c, i) (FcOffsetToPtr (FcCharSetLeaves (c),    \
-                                            FcCharSetLeaves (c)[i], \
-                                            FcCharLeaf))
+#define FcCharSetLeaves(c)           FcOffsetMember (c, leaves_offset, intptr_t)
+#define FcCharSetLeaf(c, i)          (FcOffsetToPtr (FcCharSetLeaves (c),    \
+                                                     FcCharSetLeaves (c)[i], \
+                                                     FcCharLeaf))
 #define FcCharSetNumbers(c)          FcOffsetMember (c, numbers_offset, FcChar16)
 
 #define FCSS_DEFAULT                 0 /* default behavior */
 #define FCSS_ALLOW_DUPLICATES        1 /* allows for duplicate strings in the set */
 #define FCSS_GROW_BY_64              2 /* grows buffer by 64 elements instead of 1 */
+#define FCSS_TRIPLE                  4 /* allow storing triples in storage */
 
 #define FcStrSetHasControlBit(s, c)  (s->control & c)
 #define FcStrSetHasControlBits(s, c) ((c) == (s->control & (c)))
@@ -634,6 +635,8 @@ struct _FcConfig {
     FcChar8  *desktop_name;  /* Current desktop name */
 
     int warns; /* Bitfield of warning flags (FC_WARN_*) controlling which warnings to emit */
+
+    FcStrSet *appFonts; /* List of Application-specific font files/directories */
 };
 
 typedef struct _FcFileTime {
@@ -1214,6 +1217,11 @@ FcFileScanConfig (FcFontSet     *set,
                   FcConfig      *config);
 
 FcPrivate FcBool
+FcFileScanFontFile (FcFontSet     *set,
+                    const FcChar8 *file,
+                    FcConfig      *config);
+
+FcPrivate FcBool
 FcDirScanConfig (FcFontSet     *set,
                  FcStrSet      *dirs,
                  const FcChar8 *dir,
@@ -1276,6 +1284,9 @@ FcPtrListIterRemove (FcPtrList     *list,
                      FcPtrListIter *iter);
 
 /* fcinit.c */
+FcPrivate FcConfig *
+FcInitReinitializeWith (FcConfig *config);
+
 FcPrivate FcConfig *
 FcInitLoadOwnConfig (FcConfig *config);
 

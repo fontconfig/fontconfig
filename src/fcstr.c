@@ -1451,7 +1451,11 @@ FcStrSetEqual (FcStrSet *sa, FcStrSet *sb)
 FcBool
 FcStrSetAdd (FcStrSet *set, const FcChar8 *s)
 {
-    FcChar8 *newp = FcStrCopy (s);
+    FcChar8 *newp;
+
+    if (FcStrSetHasControlBit (set, FCSS_TRIPLE))
+	return FcFalse;
+    newp = FcStrCopy (s);
     if (!newp)
 	return FcFalse;
     if (!_FcStrSetInsert (set, newp, set->num)) {
@@ -1464,7 +1468,11 @@ FcStrSetAdd (FcStrSet *set, const FcChar8 *s)
 FcBool
 FcStrSetInsert (FcStrSet *set, const FcChar8 *s, int pos)
 {
-    FcChar8 *newp = FcStrCopy (s);
+    FcChar8 *newp;
+
+    if (FcStrSetHasControlBit (set, FCSS_TRIPLE))
+	return FcFalse;
+    newp = FcStrCopy (s);
     if (!newp)
 	return FcFalse;
     if (!_FcStrSetInsert (set, newp, pos)) {
@@ -1477,7 +1485,12 @@ FcStrSetInsert (FcStrSet *set, const FcChar8 *s, int pos)
 FcBool
 FcStrSetAddTriple (FcStrSet *set, const FcChar8 *a, const FcChar8 *b, const FcChar8 *c)
 {
-    FcChar8 *newp = FcStrMakeTriple (a, b, c);
+    FcChar8 *newp;
+
+    if (!FcStrSetHasControlBit (set, FCSS_TRIPLE)) {
+	return FcFalse;
+    }
+    newp = FcStrMakeTriple (a, b, c);
     if (!newp)
 	return FcFalse;
     if (!_FcStrSetInsert (set, newp, set->num)) {
@@ -1511,7 +1524,11 @@ FcStrTripleThird (FcChar8 *str)
 FcBool
 FcStrSetAddFilename (FcStrSet *set, const FcChar8 *s)
 {
-    FcChar8 *newp = FcStrCopyFilename (s);
+    FcChar8 *newp;
+
+    if (FcStrSetHasControlBit (set, FCSS_TRIPLE))
+	return FcFalse;
+    newp = FcStrCopyFilename (s);
     if (!newp)
 	return FcFalse;
     if (!_FcStrSetInsert (set, newp, set->num)) {
