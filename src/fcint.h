@@ -635,6 +635,8 @@ struct _FcConfig {
     FcChar8  *desktop_name;  /* Current desktop name */
 
     int warns; /* Bitfield of warning flags (FC_WARN_*) controlling which warnings to emit */
+
+    FcStrSet *appFonts; /* List of Application-specific font files/directories */
 };
 
 typedef struct _FcFileTime {
@@ -1213,6 +1215,11 @@ FcFileScanConfig (FcFontSet     *set,
                   FcStrSet      *dirs,
                   const FcChar8 *file,
                   FcConfig      *config);
+
+FcPrivate FcBool
+FcFileScanFontFile (FcFontSet     *set,
+                    const FcChar8 *file,
+                    FcConfig      *config);
 
 FcPrivate FcBool
 FcDirScanConfig (FcFontSet     *set,

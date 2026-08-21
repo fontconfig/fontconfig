@@ -589,3 +589,13 @@ Set 'flag' to change the priority of Application fonts. default behavior is turn
 for backward compatibility.
 @SINCE@     2.17.0
 @@
+
+@RET@       FcStrList *
+@FUNC@      FcConfigGetAppFonts
+@TYPE1@     FcConfig *          @ARG1@      config
+@DESC@
+Returns the list of font directories and font files in <parameter>config</parameter> added by
+<function>FcConfigAppFontAddDir</function> and <function>FcConfigAppFontAddFile</function>.
+If <parameter>config</parameter> is NULL, the current configuration is used.
+@SINCE@     2.19.0
+@@
