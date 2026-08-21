@@ -1285,6 +1285,9 @@ FcPtrListIterRemove (FcPtrList     *list,
 
 /* fcinit.c */
 FcPrivate FcConfig *
+FcInitReinitializeWith (FcConfig *config);
+
+FcPrivate FcConfig *
 FcInitLoadOwnConfig (FcConfig *config);
 
 FcPrivate FcConfig *
