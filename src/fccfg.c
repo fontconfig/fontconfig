@@ -160,7 +160,7 @@ FcConfigCreate (void)
     if (!config->configFiles)
 	goto bail1;
 
-    config->fontDirs = FcStrSetCreate();
+    config->fontDirs = FcStrSetCreateEx (FCSS_TRIPLE);
     if (!config->fontDirs)
 	goto bail1;
 
@@ -494,7 +494,10 @@ FcConfigAddCache (FcConfig *config, FcCache *cache,
 		FcStrFree (base);
 	    }
 	    if (FcConfigAcceptFilename (config, dir)) {
-		FcStrSetAddTriple (dirSet, dir, NULL, NULL);
+		if (FcStrSetHasControlBit (dirSet, FCSS_TRIPLE))
+		    FcStrSetAddTriple (dirSet, dir, NULL, NULL);
+		else
+		    FcStrSetAdd (dirSet, dir);
 	    }
 	    if (s)
 		FcStrFree (s);
