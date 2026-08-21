@@ -44,6 +44,7 @@ if host_machine.system() != 'windows'
     # FIXME: this needs NotoSans-hinted.zip font downloaded and unpacked into test build directory! see run-test.sh
     ['test-crbug1004254.c', {'dependencies': dependency('threads')}], # for pthread
     ['test-mt-fccfg.c', {'include_directories': include_directories('../src'), 'dependencies': dependency('threads')}],
+    ['test-appfont.c', {'c_args': ['-DSRCDIR="@0@"'.format(meson.current_source_dir())]}],
   ]
 
   if get_option('default_library') == 'static'
