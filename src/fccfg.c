@@ -146,9 +146,11 @@ FcConfigCreate (void)
     FcMatchKind k;
     FcBool      err = FcFalse;
 
-    config = malloc (sizeof (FcConfig));
+    config = calloc (1, sizeof (FcConfig));
     if (!config)
 	goto bail0;
+    FcRefInit (&config->ref, 1);
+    FcObjectInit();
 
     config->configDirs = FcStrSetCreate();
     if (!config->configDirs)
@@ -156,31 +158,31 @@ FcConfigCreate (void)
 
     config->configFiles = FcStrSetCreate();
     if (!config->configFiles)
-	goto bail2;
+	goto bail1;
 
     config->fontDirs = FcStrSetCreate();
     if (!config->fontDirs)
-	goto bail3;
+	goto bail1;
 
     config->acceptGlobs = FcStrSetCreate();
     if (!config->acceptGlobs)
-	goto bail4;
+	goto bail1;
 
     config->rejectGlobs = FcStrSetCreate();
     if (!config->rejectGlobs)
-	goto bail5;
+	goto bail1;
 
     config->acceptPatterns = FcFontSetCreate();
     if (!config->acceptPatterns)
-	goto bail6;
+	goto bail1;
 
     config->rejectPatterns = FcFontSetCreate();
     if (!config->rejectPatterns)
-	goto bail7;
+	goto bail1;
 
     config->cacheDirs = FcStrSetCreate();
     if (!config->cacheDirs)
-	goto bail8;
+	goto bail1;
 
     for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++) {
 	config->subst[k] = FcPtrListCreate (FcDestroyAsRuleSet);
@@ -188,7 +190,7 @@ FcConfigCreate (void)
 	    err = FcTrue;
     }
     if (err)
-	goto bail9;
+	goto bail1;
 
     config->maxObjects = 0;
     for (set = FcSetSystem; set <= FcSetApplication; set++)
@@ -203,10 +205,10 @@ FcConfigCreate (void)
 
     config->rulesetList = FcPtrListCreate (FcDestroyAsRuleSet);
     if (!config->rulesetList)
-	goto bail9;
+	goto bail1;
     config->availConfigFiles = FcStrSetCreate();
     if (!config->availConfigFiles)
-	goto bail10;
+	goto bail1;
 
     config->filter_func = NULL;
     config->filter_data = NULL;
@@ -219,34 +221,10 @@ FcConfigCreate (void)
     config->prefer_app_fonts = FcFalse;
     config->warns = 0;
 
-    FcRefInit (&config->ref, 1);
-    FcObjectInit();
-
     return config;
 
-bail10:
-    FcPtrListDestroy (config->rulesetList);
-bail9:
-    for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
-	if (config->subst[k])
-	    FcPtrListDestroy (config->subst[k]);
-    FcStrSetDestroy (config->cacheDirs);
-bail8:
-    FcFontSetDestroy (config->rejectPatterns);
-bail7:
-    FcFontSetDestroy (config->acceptPatterns);
-bail6:
-    FcStrSetDestroy (config->rejectGlobs);
-bail5:
-    FcStrSetDestroy (config->acceptGlobs);
-bail4:
-    FcStrSetDestroy (config->fontDirs);
-bail3:
-    FcStrSetDestroy (config->configFiles);
-bail2:
-    FcStrSetDestroy (config->configDirs);
 bail1:
-    free (config);
+    FcConfigDestroy (config);
 bail0:
     return 0;
 }
@@ -370,22 +348,35 @@ FcConfigDestroy (FcConfig *config)
 	FcObjectFini();
 	(void)fc_atomic_ptr_cmpexch (&_fcConfig, config, NULL);
 
-	FcStrSetDestroy (config->configDirs);
-	FcStrSetDestroy (config->fontDirs);
-	FcStrSetDestroy (config->cacheDirs);
-	FcStrSetDestroy (config->configFiles);
-	FcStrSetDestroy (config->acceptGlobs);
-	FcStrSetDestroy (config->rejectGlobs);
-	FcFontSetDestroy (config->acceptPatterns);
-	FcFontSetDestroy (config->rejectPatterns);
+	if (config->configDirs)
+	    FcStrSetDestroy (config->configDirs);
+	if (config->fontDirs)
+	    FcStrSetDestroy (config->fontDirs);
+	if (config->cacheDirs)
+	    FcStrSetDestroy (config->cacheDirs);
+	if (config->configFiles)
+	    FcStrSetDestroy (config->configFiles);
+	if (config->acceptGlobs)
+	    FcStrSetDestroy (config->acceptGlobs);
+	if (config->rejectGlobs)
+	    FcStrSetDestroy (config->rejectGlobs);
+	if (config->acceptPatterns)
+	    FcFontSetDestroy (config->acceptPatterns);
+	if (config->rejectPatterns)
+	    FcFontSetDestroy (config->rejectPatterns);
 
-	for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++)
-	    FcPtrListDestroy (config->subst[k]);
-	FcPtrListDestroy (config->rulesetList);
-	FcStrSetDestroy (config->availConfigFiles);
-	for (set = FcSetSystem; set <= FcSetApplication; set++)
+	for (k = FcMatchKindBegin; k < FcMatchKindEnd; k++) {
+	    if (config->subst[k])
+		FcPtrListDestroy (config->subst[k]);
+	}
+	if (config->rulesetList)
+	    FcPtrListDestroy (config->rulesetList);
+	if (config->availConfigFiles)
+	    FcStrSetDestroy (config->availConfigFiles);
+	for (set = FcSetSystem; set <= FcSetApplication; set++) {
 	    if (config->fonts[set])
 		FcFontSetDestroy (config->fonts[set]);
+	}
 
 	page = config->expr_pool;
 	while (page) {
