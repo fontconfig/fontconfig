@@ -369,6 +369,7 @@ Raleway
 Rubik
 San Francisco
 Segoe UI
+Segoe UI Historic
 SF Pro
 SF Pro Display
 SF Pro Rounded
