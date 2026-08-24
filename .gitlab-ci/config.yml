@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2026-07-31.0"
+.default_tag: &default_tag "2026-08-24.0"
 
 build_patterns:
   - name: "autotools shared expat"
@@ -44,6 +44,11 @@ test_patterns:
       FC_BUILDSYS: meson
       FC_BUILD_TYPE: shared
       FC_BUILD_ASAN: address,undefined
+  - name: "TSAN"
+    variables:
+      FC_BUILDSYS: meson
+      FC_BUILD_TYPE: shared
+      FC_BUILD_TSAN: thread
 
 distributions:
   - name: alpine
@@ -180,6 +185,7 @@ packages:
         "cargo",
         "bindgen-cli",
         "libasan",
+        "libtsan",
         "libubsan",
         "libabigail",
       ]
