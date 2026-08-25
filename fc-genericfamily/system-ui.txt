@@ -32,8 +32,6 @@ Noto Sans Telugu UI
 Noto Sans Thai UI
 Noto Sans UI
 Segoe UI
-Segoe UI Historic
-Segoe UI Symbol
 Yu Gothic UI
 Khmer OS System
 Ume UI Gothic
