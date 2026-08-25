@@ -34,7 +34,7 @@
   - *pull-cbuild
   - /app/cbuild --debug build-container arch $FDO_DISTRIBUTION_VERSION $FDO_DISTRIBUTION_TAG
   variables:
-    FDO_BASE_IMAGE: ghcr.io/msys2/msys2-docker-experimental
+    FDO_BASE_IMAGE: ghcr.io/msys2/msys2-docker-experimental@sha256:b67d4007784d5e7b79346628221daa5563c350023ef71a85fff15d7293fe4d76
     FDO_REPO_SUFFIX: msys2/latest
   artifacts:
     paths:

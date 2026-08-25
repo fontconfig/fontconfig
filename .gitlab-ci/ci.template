@@ -321,6 +321,7 @@ lint-changelog-trailer:
         # Expects the target is MSYS2 so far.
         mkdir -p ~/.wine/drive_c/msys64/$fc_parent_builddir
         CWD=$(pwd)
+        cd /
         mv $CI_PROJECT_DIR ~/.wine/drive_c/msys64/$fc_parent_builddir/
         echo "${FC_BUILD_SH[@]} 'cd \$1; shift; python3 .gitlab-ci/build.py -E \"\$@\"' -- \"$CWD\" \"${buildopt[@]}\""
         ${FC_BUILD_SH[@]} 'cd $1; shift; python3 .gitlab-ci/build.py -E "$@"' -- "$CWD" "${buildopt[@]}"
