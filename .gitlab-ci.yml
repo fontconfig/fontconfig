@@ -47,10 +47,10 @@ variables:
 # changing these will force rebuilding the associated image
 # Note: these tags have no meaning and are not tied to a particular
 # fontconfig version
-  ALPINE_TAG:    '2026-07-31.0-b5c1f6dffcf4'
-  FEDORA_TAG:    '2026-07-31.0-c81dbfddf0ae'
-  FREEBSD_TAG:   '2026-07-31.0-7adc8ae2c6bb'
-  MSYS2_TAG:     '2026-07-31.0-6765f7096ba4'
+  ALPINE_TAG:    '2026-08-24.0-6950c95bbf7b'
+  FEDORA_TAG:    '2026-08-24.0-afa24097b5fd'
+  FREEBSD_TAG:   '2026-08-24.0-d27a025f9112'
+  MSYS2_TAG:     '2026-08-24.0-135ee08204ae'
 
   ALPINE_EXEC:   'bash .gitlab-ci/alpine-install.sh'
   FEDORA_EXEC:   'bash .gitlab-ci/fedora-install.sh'
@@ -160,7 +160,7 @@ fedora:rawhide@container-prep:
   variables:
     GIT_STRATEGY: none
     FDO_DISTRIBUTION_VERSION: 'rawhide'
-    FDO_DISTRIBUTION_PACKAGES: '@buildsys-build autoconf automake clang-devel clang-tools-extra curl libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git git-clang-format docbook-utils wkhtmltopdf bubblewrap ninja-build wget python3-pip rust cargo bindgen-cli libasan libubsan libabigail'
+    FDO_DISTRIBUTION_PACKAGES: '@buildsys-build autoconf automake clang-devel clang-tools-extra curl libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git git-clang-format docbook-utils wkhtmltopdf bubblewrap ninja-build wget python3-pip rust cargo bindgen-cli libasan libtsan libubsan libabigail'
     FDO_DISTRIBUTION_TAG: $FEDORA_TAG
     FDO_DISTRIBUTION_EXEC: $FEDORA_EXEC
 
@@ -170,7 +170,7 @@ fedora:44@container-prep:
   variables:
     GIT_STRATEGY: none
     FDO_DISTRIBUTION_VERSION: '44'
-    FDO_DISTRIBUTION_PACKAGES: '@buildsys-build autoconf automake clang-devel clang-tools-extra curl libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git git-clang-format docbook-utils wkhtmltopdf bubblewrap ninja-build wget python3-pip rust cargo bindgen-cli libasan libubsan libabigail'
+    FDO_DISTRIBUTION_PACKAGES: '@buildsys-build autoconf automake clang-devel clang-tools-extra curl libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git git-clang-format docbook-utils wkhtmltopdf bubblewrap ninja-build wget python3-pip rust cargo bindgen-cli libasan libtsan libubsan libabigail'
     FDO_DISTRIBUTION_TAG: $FEDORA_TAG
     FDO_DISTRIBUTION_EXEC: $FEDORA_EXEC
 
@@ -180,7 +180,7 @@ fedora:43@container-prep:
   variables:
     GIT_STRATEGY: none
     FDO_DISTRIBUTION_VERSION: '43'
-    FDO_DISTRIBUTION_PACKAGES: '@buildsys-build autoconf automake clang-devel clang-tools-extra curl libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git git-clang-format docbook-utils wkhtmltopdf bubblewrap ninja-build wget python3-pip rust cargo bindgen-cli libasan libubsan libabigail'
+    FDO_DISTRIBUTION_PACKAGES: '@buildsys-build autoconf automake clang-devel clang-tools-extra curl libtool gettext gettext-devel gperf expat-devel libxml2-devel freetype-devel json-c-devel git git-clang-format docbook-utils wkhtmltopdf bubblewrap ninja-build wget python3-pip rust cargo bindgen-cli libasan libtsan libubsan libabigail'
     FDO_DISTRIBUTION_TAG: $FEDORA_TAG
     FDO_DISTRIBUTION_EXEC: $FEDORA_EXEC
 
@@ -404,6 +404,7 @@ msys2:latest@container-clean:
         # Expects the target is MSYS2 so far.
         mkdir -p ~/.wine/drive_c/msys64/$fc_parent_builddir
         CWD=$(pwd)
+        cd /
         mv $CI_PROJECT_DIR ~/.wine/drive_c/msys64/$fc_parent_builddir/
         echo "${FC_BUILD_SH[@]} 'cd \$1; shift; python3 .gitlab-ci/build.py -E \"\$@\"' -- \"$CWD\" \"${buildopt[@]}\""
         ${FC_BUILD_SH[@]} 'cd $1; shift; python3 .gitlab-ci/build.py -E "$@"' -- "$CWD" "${buildopt[@]}"
@@ -611,6 +612,22 @@ ASAN/UBSAN:
     FC_BUILDSYS: meson
     FC_BUILD_TYPE: shared
     FC_BUILD_ASAN: address,undefined
+  needs:
+    - fedora:rawhide@container-prep
+TSAN:
+  stage: test
+  extends:
+    - .build@template
+    - .fdo.distribution-image@fedora
+    - .fc_artifacts
+  variables:
+    FC_DISTRO_NAME: fedora
+    FDO_DISTRIBUTION_VERSION: rawhide
+    FDO_DISTRIBUTION_TAG: $FEDORA_TAG
+    FC_TEST_EXEC: TSAN
+    FC_BUILDSYS: meson
+    FC_BUILD_TYPE: shared
+    FC_BUILD_TSAN: thread
   needs:
     - fedora:rawhide@container-prep
 
