@@ -1,12 +1,6 @@
-.default_tag: &default_tag "2026-08-24.0"
+.default_tag: &default_tag "2026-08-27.0"
 
 build_patterns:
-  - name: "autotools shared expat"
-    variables:
-      FC_BUILDSYS: autotools
-      FC_BUILD_TYPE: shared
-      FC_XML_BACKEND: expat
-      FC_BUILD_DISABLED: docs
   - name: "meson shared expat"
     variables:
       FC_BUILDSYS: meson
@@ -70,8 +64,8 @@ distributions:
     qemu_based: false
     versions:
       - "rawhide"
+      - "45"
       - "44"
-      - "43"
     builds:
       - name: "standard build"
         upload: "rawhide"
@@ -160,12 +154,9 @@ packages:
     needed:
       [
         "@buildsys-build",
-        "autoconf",
-        "automake",
         "clang-devel",
         "clang-tools-extra",
         "curl",
-        "libtool",
         "gettext",
         "gettext-devel",
         "gperf",
