@@ -272,7 +272,7 @@ lint-changelog-trailer:
         exit 1 ;
       fi
   variables:
-    FC_BUILDSYS: autotools
+    FC_BUILDSYS: meson
     FC_XML_BACKEND: expat
     FC_BUILD_TYPE: both
     FC_BUILD_DISTCHECK: 0
@@ -336,7 +336,7 @@ lint-changelog-trailer:
         sh ".gitlab-ci/test-${FC_TEST_EXEC}.sh"
       fi
   variables:
-    FC_BUILDSYS: autotools
+    FC_BUILDSYS: meson
     FC_XML_BACKEND: expat
     FC_BUILD_TYPE: both
     FC_BUILD_DISTCHECK: 0
