@@ -532,7 +532,7 @@ FcCompareDataClear (FcCompareData *data)
     FcHashTableDestroy (data->family_hash);
 }
 
-static void
+static FcBool
 FcCompareDataInit (FcPattern     *pat,
                    FcCompareData *data)
 {
@@ -549,6 +549,8 @@ FcCompareDataInit (FcPattern     *pat,
                                NULL,
                                NULL,
                                free);
+    if (!table)
+	return FcFalse;
 
     elt = FcPatternObjectFindElt (pat, FC_FAMILY_OBJECT);
     if (elt) {
@@ -556,6 +558,10 @@ FcCompareDataInit (FcPattern     *pat,
 	    key = FcValueString (&l->value);
 	    if (!FcHashTableFind (table, key, (void **)&e)) {
 		e = malloc (sizeof (FamilyEntry));
+		if (!e) {
+		    FcHashTableDestroy (table);
+		    return FcFalse;
+		}
 		e->strong_value = 1e99;
 		e->weak_value = 1e99;
 		FcHashTableAdd (table, (void *)key, e);
@@ -571,6 +577,7 @@ FcCompareDataInit (FcPattern     *pat,
     }
 
     data->family_hash = table;
+    return FcTrue;
 }
 
 static FcBool
@@ -867,7 +874,8 @@ FcFontSetMatchInternal (FcFontSet **sets,
 	FcPatternPrint (p);
     }
 
-    FcCompareDataInit (p, &data);
+    if (!FcCompareDataInit (p, &data))
+	return 0;
 
     for (set = 0; set < nsets; set++) {
 	s = sets[set];
@@ -1212,7 +1220,8 @@ FcFontSetSort (FcConfig   *config,
     nodeps = (FcSortNode **)(nodes + nnodes);
     patternLangSat = (FcBool *)(nodeps + nnodes);
 
-    FcCompareDataInit (p, &data);
+    if (!FcCompareDataInit (p, &data))
+	goto bail1;
 
     newp = nodes;
     nodep = nodeps;

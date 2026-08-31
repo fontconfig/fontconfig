@@ -193,6 +193,11 @@ FcDirCacheBasenameMD5 (FcConfig *config, const FcChar8 *dir, FcChar8 cache_base[
 	size_t sl = strlen ((const char *)salt);
 
 	key = (FcChar8 *)malloc (dl + sl + 1);
+	if (!key) {
+	    if (mapped_dir)
+		FcStrFree (mapped_dir);
+	    return NULL;
+	}
 	memcpy (key, dir, dl);
 	memcpy (key + dl, salt, sl + 1);
 	key[dl + sl] = 0;
@@ -285,7 +290,10 @@ FcDirCacheUnlink (const FcChar8 *dir, FcConfig *config)
 	return FcFalse;
     sysroot = FcConfigGetSysRoot (config);
 
-    FcDirCacheBasenameMD5 (config, dir, cache_base);
+    if (!FcDirCacheBasenameMD5 (config, dir, cache_base)) {
+	ret = FcFalse;
+	goto bail;
+    }
 #ifndef _WIN32
     FcDirCacheBasenameUUID (config, dir, uuid_cache_base);
 #endif
@@ -380,7 +388,8 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
     }
     FcStrFree (d);
 
-    FcDirCacheBasenameMD5 (config, dir, cache_base);
+    if (!FcDirCacheBasenameMD5 (config, dir, cache_base))
+	return FcFalse;
 
     list = FcStrListCreate (config->cacheDirs);
     if (!list)
@@ -1541,7 +1550,10 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     if (!cache_dir)
 	return FcFalse;
 
-    FcDirCacheBasenameMD5 (config, dir, cache_base);
+    if (!FcDirCacheBasenameMD5 (config, dir, cache_base)) {
+	FcStrFree (cache_dir);
+	return FcFalse;
+    }
     cache_hashed = FcStrBuildFilename (cache_dir, cache_base, NULL);
     if (!cache_hashed) {
 	FcStrFree (cache_dir);
@@ -1740,6 +1752,13 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
 		s = FcStrBuildFilename (sysroot, target_dir, NULL);
 	    else
 		s = FcStrCopy (target_dir);
+	    if (!s) {
+		fprintf (stderr, "Fontconfig error: %s: allocation failure\n", dir);
+		ret = FcFalse;
+		FcDirCacheUnload (cache);
+		FcStrFree (file_name);
+		break;
+	    }
 	    if (stat ((char *)s, &target_stat) < 0) {
 		if (verbose || FcDebug() & FC_DBG_CACHE)
 		    printf ("%s: %s: missing directory: %s \n",
@@ -1778,7 +1797,8 @@ FcDirCacheLock (const FcChar8 *dir,
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
     int            fd = -1;
 
-    FcDirCacheBasenameMD5 (config, dir, cache_base);
+    if (!FcDirCacheBasenameMD5 (config, dir, cache_base))
+	return -1;
     list = FcStrListCreate (config->cacheDirs);
     if (!list)
 	return -1;

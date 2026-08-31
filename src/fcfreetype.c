@@ -1175,7 +1175,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face   face,
 #if 0
     FcChar8	    *family = 0;
 #endif
-    FcChar8       *complex_, *foundry_ = NULL;
+    FcChar8       *complex_;
     const FcChar8 *foundry = 0;
     int            spacing;
 
@@ -1186,6 +1186,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face   face,
     double              width_mult = 1.0;
 
     TT_OS2 *os2;
+    FcChar8 foundry_[sizeof (os2->achVendID) + 1];
 #if HAVE_FT_GET_PS_FONT_INFO
     PS_FontInfoRec psfontinfo;
 #endif
@@ -1353,8 +1354,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face   face,
 
     if (os2 && os2->version != 0xffff) {
 	if (os2->achVendID[0] != 0) {
-	    foundry_ = (FcChar8 *)malloc (sizeof (os2->achVendID) + 1);
-	    memcpy ((void *)foundry_, os2->achVendID, sizeof (os2->achVendID));
+	    memcpy (foundry_, os2->achVendID, sizeof (os2->achVendID));
 	    foundry_[sizeof (os2->achVendID)] = 0;
 	    foundry = foundry_;
 	}
@@ -1717,9 +1717,11 @@ FcFreeTypeQueryFaceInternal (const FT_Face   face,
     /* Qt6 seems using :-prefixing to take care of some special case.
      * Do not call FcStrCanonFilename not to break that
      */
-    if (file && file[0] != ':')
+    if (file && file[0] != ':') {
 	canon_file = FcStrCanonFilename (file);
-    else
+	if (!canon_file)
+	    goto bail1;
+    } else
 	canon_file = (FcChar8 *)file;
     if (canon_file && *canon_file && !FcPatternObjectAddString (pat, FC_FILE_OBJECT, canon_file))
 	goto bail1;
@@ -2133,8 +2135,6 @@ FcFreeTypeQueryFaceInternal (const FT_Face   face,
      * Drop our reference to the charset
      */
     FcCharSetDestroy (cs);
-    if (foundry_)
-	free (foundry_);
     if (canon_file && canon_file != file)
 	free (canon_file);
 
@@ -2163,8 +2163,6 @@ bail1:
     }
     if (!nm_share && name_mapping)
 	free (name_mapping);
-    if (foundry_)
-	free (foundry_);
     if (canon_file)
 	free (canon_file);
 bail0:

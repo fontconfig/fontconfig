@@ -117,6 +117,10 @@ FcFileScanFontConfig (FcFontSet     *set,
 	    if (FcPatternObjectGetString (font, FC_FILE_OBJECT, 0, &f) == FcResultMatch &&
 	        strncmp ((const char *)f, (const char *)sysroot, len) == 0) {
 		FcChar8 *s = FcStrCopy (f);
+		if (!s) {
+		    ret = FcFalse;
+		    break;
+		}
 		FcPatternObjectDel (font, FC_FILE_OBJECT);
 		if (s[len] != '/')
 		    len--;

@@ -73,6 +73,10 @@ FcInitFallbackConfigWithFilter (FcConfig *config, const FcChar8 *sysroot)
 {
     FcConfig *fallback = FcInitFallbackConfig (sysroot);
 
+    if (!fallback) {
+	FcConfigDestroy (config);
+	return NULL;
+    }
     /* Copy filter data */
     fallback->filter_func = config->filter_func;
     fallback->filter_data = config->filter_data;

@@ -112,6 +112,7 @@ ftglue_stream_frame_enter (FT_Stream stream,
 	if (read_bytes < count) {
 	    FREE (stream->base);
 	    error = FT_Err_Invalid_Stream_Operation;
+	    goto Exit;
 	}
 	stream->cursor = stream->base;
 	stream->limit = stream->cursor + count;

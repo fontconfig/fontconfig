@@ -1285,6 +1285,8 @@ FcConvertDosPath (char *str)
 FcChar8 *
 FcStrCanonFilename (const FcChar8 *s)
 {
+    if (!s)
+	return NULL;
 #ifdef _WIN32
     FcChar8 full[FC_MAX_FILE_LEN + 2];
     int     size = GetFullPathName ((LPCSTR)s, sizeof (full) - 1,
@@ -1306,6 +1308,8 @@ FcStrCanonFilename (const FcChar8 *s)
 	if (getcwd ((char *)cwd, FC_MAX_FILE_LEN) == NULL)
 	    return NULL;
 	full = FcStrBuildFilename (cwd, s, NULL);
+	if (!full)
+	    return NULL;
 	file = FcStrCanonAbsoluteFilename (full);
 	FcStrFree (full);
 	return file;
@@ -1697,7 +1701,7 @@ FcStrListFirst (FcStrList *list)
 FcChar8 *
 FcStrListNext (FcStrList *list)
 {
-    if (list->n >= list->set->num)
+    if (!list || list->n >= list->set->num)
 	return 0;
     return list->set->strs[list->n++];
 }

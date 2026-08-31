@@ -1619,7 +1619,7 @@ FamilyTableLookup (FamilyTable   *table,
     return FcHashTableFind (hash, (const void *)s, (void **)&fe);
 }
 
-static void
+static FcBool
 FamilyTableAdd (FamilyTable   *table,
                 FcValueListPtr values)
 {
@@ -1630,6 +1630,8 @@ FamilyTableAdd (FamilyTable   *table,
 
 	if (!FcHashTableFind (table->family_hash, (const void *)s, (void **)&fe)) {
 	    fe = malloc (sizeof (FamilyTableEntry));
+	    if (!fe)
+		return FcFalse;
 	    fe->count = 0;
 	    FcHashTableAdd (table->family_hash, (void *)s, fe);
 	}
@@ -1637,11 +1639,14 @@ FamilyTableAdd (FamilyTable   *table,
 
 	if (!FcHashTableFind (table->family_blank_hash, (const void *)s, (void **)&fe)) {
 	    fe = malloc (sizeof (FamilyTableEntry));
+	    if (!fe)
+		return FcFalse;
 	    fe->count = 0;
 	    FcHashTableAdd (table->family_blank_hash, (void *)s, fe);
 	}
 	fe->count++;
     }
+    return FcTrue;
 }
 
 static void
@@ -1670,11 +1675,12 @@ copy_string (const void *src, void **dest)
     return FcTrue;
 }
 
-static void
+static FcBool
 FamilyTableInit (FamilyTable *table,
                  FcPattern   *p)
 {
     FcPatternElt *e;
+    FcBool        ret = FcTrue;
 
     table->family_blank_hash = FcHashTableCreate ((FcHashFunc)FcStrHashIgnoreBlanksAndCase,
                                                   (FcCompareFunc)FcStrCmpIgnoreBlanksAndCase,
@@ -1688,9 +1694,12 @@ FamilyTableInit (FamilyTable *table,
                                             NULL,
                                             free,
                                             free);
+    if (!table->family_blank_hash || !table->family_hash)
+	return FcFalse;
     e = FcPatternObjectFindElt (p, FC_FAMILY_OBJECT);
     if (e)
-	FamilyTableAdd (table, FcPatternEltValues (e));
+	ret = FamilyTableAdd (table, FcPatternEltValues (e));
+    return ret;
 }
 
 static void
@@ -1829,7 +1838,8 @@ FcConfigAdd (FcValueListPtr *head,
     }
 
     if (object == FC_FAMILY_OBJECT && table) {
-	FamilyTableAdd (table, newp);
+	if (!FamilyTableAdd (table, newp))
+	    return FcFalse;
     }
 
     if (append) {
@@ -2049,7 +2059,11 @@ FcConfigSubstituteWithPat (FcConfig   *config,
 	FcPatternPrint (p);
     }
 
-    FamilyTableInit (&data, p);
+    if (!FamilyTableInit (&data, p)) {
+	retval = FcFalse;
+	FamilyTableClear (&data);
+	goto bail1;
+    }
 
     FcPtrListIterInit (s, &iter);
     for (; FcPtrListIterIsValid (s, &iter); FcPtrListIterNext (s, &iter)) {

@@ -1225,6 +1225,8 @@ FcCharSetSerializeAlloc (FcSerialize *serialize, const FcCharSet *cs)
 	    return FcTrue;
 
 	cs = FcCharSetFreeze (serialize->cs_freezer, cs);
+	if (!cs)
+	    return FcFalse;
     }
 
     leaves = FcCharSetLeaves (cs);
