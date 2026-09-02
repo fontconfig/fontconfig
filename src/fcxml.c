@@ -3608,10 +3608,13 @@ _FcConfigParse (FcConfig      *config,
     do {
 	len = read (fd, buf, BUFSIZ);
 	if (len < 0) {
-	    int  errno_ = errno;
-	    char ebuf[BUFSIZ + 1];
+	    int   errno_ = errno;
+	    char  ebuf[BUFSIZ + 1];
+	    char *msg = ebuf;
 
-#if HAVE_STRERROR_R
+#if HAVE_GNU_STRERROR_R
+	    msg = strerror_r (errno_, ebuf, BUFSIZ);
+#elif HAVE_STRERROR_R
 	    strerror_r (errno_, ebuf, BUFSIZ);
 #elif HAVE_STRERROR
 	    char  *tmp = strerror (errno_);
@@ -3621,7 +3624,7 @@ _FcConfigParse (FcConfig      *config,
 #else
 	    ebuf[0] = 0;
 #endif
-	    FcConfigMessage (0, FcSevereError, "failed reading config file: %s: %s (errno %d)", realfilename, ebuf, errno_);
+	    FcConfigMessage (0, FcSevereError, "failed reading config file: %s: %s (errno %d)", realfilename, msg, errno_);
 	    close (fd);
 	    goto bail1;
 	}

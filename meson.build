@@ -336,15 +336,28 @@ if cc.compiles(files('meson-cc-tests/pthread-prio-inherit-test.c'))
   conf.set('HAVE_PTHREAD_PRIO_INHERIT', 1)
 endif
 
-if cc.links(files('meson-cc-tests/stdatomic-primitives-test.c'), name: 'stdatomic.h atomics')
+if cc.compiles(files('meson-cc-tests/gnu-strerror_r-test.c'))
+  conf.set('HAVE_GNU_STRERROR_R', 1)
+endif
+
+if cc.links(
+  files('meson-cc-tests/stdatomic-primitives-test.c'),
+  name: 'stdatomic.h atomics',
+)
   conf.set('HAVE_STDATOMIC_PRIMITIVES', 1)
 endif
 
-if cc.links(files('meson-cc-tests/intel-atomic-primitives-test.c'), name: 'Intel atomics')
+if cc.links(
+  files('meson-cc-tests/intel-atomic-primitives-test.c'),
+  name: 'Intel atomics',
+)
   conf.set('HAVE_INTEL_ATOMIC_PRIMITIVES', 1)
 endif
 
-if cc.links(files('meson-cc-tests/solaris-atomic-operations.c'), name: 'Solaris atomic ops')
+if cc.links(
+  files('meson-cc-tests/solaris-atomic-operations.c'),
+  name: 'Solaris atomic ops',
+)
   conf.set('HAVE_SOLARIS_ATOMIC_OPS', 1)
 endif
 
