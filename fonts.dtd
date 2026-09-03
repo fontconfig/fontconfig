@@ -10,6 +10,8 @@
 		      remap-dir |
 		      reset-dirs |
 		      selectfont)* >
+<!ATTLIST fontconfig
+          since CDATA #IMPLIED>
 
 <!-- 
     Add a directory that provides fonts
@@ -153,7 +155,8 @@
 
 <!ELEMENT alias (test?, family*, prefer?, accept?, default?)>
 <!ATTLIST alias
-	  binding (weak|strong|same) "weak">
+	  binding (weak|strong|same) "weak"
+          since CDATA #IMPLIED>
 <!ELEMENT prefer (family)*>
 <!ELEMENT accept (family)*>
 <!ELEMENT default (family)*>
@@ -174,7 +177,8 @@
 -->
 <!ELEMENT match (test|edit)+>
 <!ATTLIST match
-	  target (pattern|font|scan) "pattern">
+	  target (pattern|font|scan) "pattern"
+          since CDATA #IMPLIED>
 
 <!--
     Match a field in a pattern

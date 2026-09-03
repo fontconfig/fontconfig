@@ -319,9 +319,14 @@ following structure:
 &lt;/fontconfig&gt;
     </programlisting>
   </para>
-<refsect2><title><literal>&lt;fontconfig&gt;</literal></title><para>
+<refsect2><title><literal>&lt;fontconfig since=""&gt;</literal></title><para>
 This is the top level element for a font configuration and can contain
 <literal>&lt;dir&gt;</literal>, <literal>&lt;cachedir&gt;</literal>, <literal>&lt;include&gt;</literal>, <literal>&lt;match&gt;</literal> and <literal>&lt;alias&gt;</literal> elements in any order.
+  </para><para>
+If 'since' is set to a version number (e.g. "2.19.0"), the entire file will be
+skipped when the running fontconfig version is older than the specified version.
+This allows config files to require a minimum fontconfig version without causing
+warnings or errors on older installations.
   </para></refsect2>
   <refsect2><title><literal>&lt;dir prefix="default" salt=""&gt;</literal></title><para>
 This element contains a directory name which will be scanned for font files
@@ -431,7 +436,7 @@ have a 'name' attribute which indicates the pattern element name.  Patelt
 elements include int, double, string, matrix, bool, charset and const
 elements.
   </para></refsect2>
-  <refsect2><title><literal>&lt;match target="pattern"&gt;</literal></title><para>
+  <refsect2><title><literal>&lt;match target="pattern" since=""&gt;</literal></title><para>
 This element holds first a (possibly empty) list of <literal>&lt;test&gt;</literal> elements and then
 a (possibly empty) list of <literal>&lt;edit&gt;</literal> elements.  Patterns which match all of the
 tests are subjected to all the edits.  If 'target' is set to "font" instead
@@ -439,6 +444,9 @@ of the default "pattern", then this element applies to the font name
 resulting from a match rather than a font pattern to be matched. If 'target'
 is set to "scan", then this element applies when the font is scanned to
 build the fontconfig database.
+  </para><para>
+If 'since' is set to a version number (e.g. "2.19.0"), this match rule will be
+skipped when the running fontconfig version is older than the specified version.
   </para></refsect2>
   <refsect2><title><literal>&lt;test qual="any" name="property" target="default" compare="eq"&gt;</literal></title><para>
 This element contains a single value which is compared with the target
@@ -601,7 +609,7 @@ This element takes three expression elements; if the value of the first is
 true, it produces the value of the second, otherwise it produces the value
 of the third.
   </para></refsect2>
-  <refsect2><title><literal>&lt;alias&gt;</literal></title><para>
+  <refsect2><title><literal>&lt;alias binding="weak" since=""&gt;</literal></title><para>
 Alias elements provide a shorthand notation for the set of common match
 operations needed to substitute one font family for another.  They contain a
 <literal>&lt;family&gt;</literal> element followed by optional <literal>&lt;prefer&gt;</literal>, <literal>&lt;accept&gt;</literal> and <literal>&lt;default&gt;</literal>
@@ -609,6 +617,9 @@ elements.  Fonts matching the <literal>&lt;family&gt;</literal> element are edit
 list of <literal>&lt;prefer&gt;</literal>ed families before the matching <literal>&lt;family&gt;</literal>, append the
 <literal>&lt;accept&gt;</literal>able families after the matching <literal>&lt;family&gt;</literal> and append the <literal>&lt;default&gt;</literal>
 families to the end of the family list.
+  </para><para>
+If 'since' is set to a version number (e.g. "2.19.0"), this alias rule will be
+skipped when the running fontconfig version is older than the specified version.
   </para></refsect2>
   <refsect2><title><literal>&lt;family&gt;</literal></title><para>
 Holds a single font family name
