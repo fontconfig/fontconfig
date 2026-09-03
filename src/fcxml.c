@@ -36,12 +36,16 @@
 
 #  include <libxml/parser.h>
 
-#  define XML_Char                 xmlChar
-#  define XML_Parser               xmlParserCtxtPtr
-#  define XML_ParserFree           xmlFreeParserCtxt
-#  define XML_GetCurrentLineNumber xmlSAX2GetLineNumber
-#  define XML_GetErrorCode         xmlCtxtGetLastError
-#  define XML_ErrorString(Error)   (Error)->message
+#  define XML_Char                     xmlChar
+#  define XML_Parser                   xmlParserCtxtPtr
+#  define XML_ParserFree               xmlFreeParserCtxt
+#  define XML_GetCurrentLineNumber     xmlSAX2GetLineNumber
+#  define XML_GetErrorCode             xmlCtxtGetLastError
+#  define XML_ErrorString(Error)       (Error)->message
+#  define XML_ErrorCode(Error)         (Error)->code
+#  define XML_StopParser(parser, flag) xmlStopParser (parser)
+#  define XML_ERROR_ABORTED            XML_ERR_USER_STOP
+#  define XML_Error                    const xmlError *
 
 #else /* ENABLE_LIBXML2 */
 
@@ -54,6 +58,9 @@
 #  else
 #    include <expat.h>
 #  endif
+
+#  define XML_Error            enum XML_Error
+#  define XML_ErrorCode(Error) (Error)
 
 #endif /* ENABLE_LIBXML2 */
 
@@ -713,6 +720,8 @@ typedef enum _FcConfigSeverity {
 
 static FcBool
 FcConfigLexBool (FcConfigParse *parse, const FcChar8 *bool_);
+static FcBool
+FcParseFontconfig (FcConfigParse *parse, const XML_Char **attr);
 
 static void
 FcConfigMessage (FcConfigParse *parse, FcConfigSeverity severe, const char *fmt, ...)
@@ -1189,6 +1198,10 @@ FcVStackPopAndDestroy (FcConfigParse *parse)
     case FcVStackName:
 	break;
     case FcVStackFamily:
+	/* Consumers hand off ownership by resetting the tag to FcVStackNone
+	 * before popping; anything still tagged FcVStackFamily here was never
+	 * taken over, so free it to avoid leaking the expr. */
+	FcExprDestroy (vstack->u.expr);
 	break;
     case FcVStackString:
     case FcVStackConstant:
@@ -1547,12 +1560,60 @@ FcStartElement (void *userData, const XML_Char *name, const XML_Char **attr)
     element = FcElementMap (name);
     if (element == FcElementUnknown)
 	FcConfigMessage (parse, FcSevereWarning, "unknown element \"%s\"", name);
+    if (element == FcElementFontconfig) {
+	if (!FcParseFontconfig (parse, attr)) {
+	    XML_StopParser (parse->parser, XML_FALSE);
+	    return;
+	}
+	/* we don't parse anything for FcElementFontconfig in FcEndElement.
+	 * So do not add to the stack to avoid invalid attribute.
+	 */
+	return;
+    }
 
     if (!FcPStackPush (parse, element, attr)) {
 	FcConfigMessage (parse, FcSevereError, "out of memory");
 	return;
     }
     return;
+}
+
+static FcBool
+_check_fontconfig_version (FcConfigParse *parse, const char *versionstr)
+{
+    const char *p = versionstr;
+    int         vx = 0, vy = 0, vz = 0, confver;
+
+    while (isspace ((unsigned char)*p))
+	p++;
+    if (!isdigit ((unsigned char)*p) || sscanf (p, "%d.%d.%d", &vx, &vy, &vz) != 3) {
+	FcConfigMessage (parse, FcSevereWarning, "Invalid version format \"%s\"", versionstr);
+	return FcFalse;
+    }
+    confver = (vx * 10000) + (vy * 100) + vz;
+    if (FC_VERSION < confver) {
+	FcConfigMessage (parse, FcSevereInfo,
+	                 "Skipping due to version mismatch (current: %d.%d.%d, required: >= %s)",
+	                 FC_MAJOR, FC_MINOR, FC_REVISION, versionstr);
+	return FcFalse;
+    }
+    return FcTrue;
+}
+
+static FcBool
+FcParseFontconfig (FcConfigParse *parse, const XML_Char **attr)
+{
+    const XML_Char **p = attr;
+
+    if (!p)
+	return FcTrue;
+    while (*p) {
+	if (!strcmp ((char *)*p, "since")) {
+	    return _check_fontconfig_version (parse, (const char *)*(p + 1));
+	}
+	p += 2;
+    }
+    return FcTrue;
 }
 
 static void
@@ -2155,9 +2216,14 @@ FcParseAlias (FcConfigParse *parse)
     FcRule        *rule = NULL, *r;
     FcValueBinding binding;
     int            n;
+    const FcChar8 *ver;
 
     if (!FcConfigLexBinding (parse, FcConfigGetAttribute (parse, "binding"), &binding))
 	return;
+    ver = FcConfigGetAttribute (parse, "since");
+    if (ver && !_check_fontconfig_version (parse, (const char *)ver)) {
+	return;
+    }
     while ((vstack = FcVStackPeek (parse))) {
 	switch ((int)vstack->tag) {
 	case FcVStackFamily:
@@ -2864,13 +2930,17 @@ FcParseEdit (FcConfigParse *parse)
 static void
 FcParseMatch (FcConfigParse *parse)
 {
-    const FcChar8 *kind_name;
+    const FcChar8 *kind_name, *ver;
     FcMatchKind    kind;
     FcVStack      *vstack;
     FcRule        *rule = NULL, *r;
     int            n;
 
     kind_name = FcConfigGetAttribute (parse, "target");
+    ver = FcConfigGetAttribute (parse, "since");
+    if (ver && !_check_fontconfig_version (parse, (const char *)ver)) {
+	return;
+    }
     if (!kind_name)
 	kind = FcMatchPattern;
     else {
@@ -3499,6 +3569,17 @@ FcConfigParseAndLoadFromMemoryInternal (FcConfig      *config,
     if (!XML_ParseBuffer (p, buflen, buflen == 0))
 #endif
 	{
+	    XML_Error xmlerror = XML_GetErrorCode (p);
+	    if (xmlerror && XML_ErrorCode (xmlerror) == XML_ERROR_ABORTED) {
+		error = FcFalse;
+		goto bail3;
+	    }
+#ifdef ENABLE_LIBXML2
+	    if (!xmlerror && p->errNo == XML_ERR_USER_STOP) {
+		error = FcFalse;
+		goto bail3;
+	    }
+#endif
 	    FcConfigMessage (&parse, FcSevereError, "%s",
 	                     XML_ErrorString (XML_GetErrorCode (p)));
 	    goto bail3;
