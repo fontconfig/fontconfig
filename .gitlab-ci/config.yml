@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2026-08-27.0"
+.default_tag: &default_tag "2026-09-04.0"
 
 build_patterns:
   - name: "meson shared expat"
@@ -42,7 +42,7 @@ test_patterns:
     variables:
       FC_BUILDSYS: meson
       FC_BUILD_TYPE: shared
-      FC_BUILD_TSAN: thread
+      FC_BUILD_ASAN: thread
 
 distributions:
   - name: alpine

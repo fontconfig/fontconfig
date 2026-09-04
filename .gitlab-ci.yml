@@ -47,10 +47,10 @@ variables:
 # changing these will force rebuilding the associated image
 # Note: these tags have no meaning and are not tied to a particular
 # fontconfig version
-  ALPINE_TAG:    '2026-08-27.0-9a2f56d787b9'
-  FEDORA_TAG:    '2026-08-27.0-f97779a9c72e'
-  FREEBSD_TAG:   '2026-08-27.0-51c28e3de9c8'
-  MSYS2_TAG:     '2026-08-27.0-429c84d91c9d'
+  ALPINE_TAG:    '2026-09-04.0-223d58102189'
+  FEDORA_TAG:    '2026-09-04.0-6c56cc96015c'
+  FREEBSD_TAG:   '2026-09-04.0-15f64af77579'
+  MSYS2_TAG:     '2026-09-04.0-ac7998a1497f'
 
   ALPINE_EXEC:   'bash .gitlab-ci/alpine-install.sh'
   FEDORA_EXEC:   'bash .gitlab-ci/fedora-install.sh'
@@ -611,7 +611,7 @@ TSAN:
     FC_TEST_EXEC: TSAN
     FC_BUILDSYS: meson
     FC_BUILD_TYPE: shared
-    FC_BUILD_TSAN: thread
+    FC_BUILD_ASAN: thread
   needs:
     - fedora:rawhide@container-prep
 
