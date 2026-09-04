@@ -74,11 +74,15 @@ foreach test_data : tests + tests_not_parallel + tests_build_only
 
   test_name = fname.split('.')[0].underscorify()
 
-  exe = executable(test_name, fname, fcstdint_h, fclang_h,
+  exe = executable(
+    test_name,
+    fname,
+    fcstdint_h,
+    fclang_h,
     c_args: c_args + extra_c_args,
     include_directories: [incbase] + extra_incdir,
     link_with: link_with_libs,
-    dependencies: extra_deps,
+    dependencies: [fcint_dep, extra_deps],
   )
 
   if test_data not in tests_build_only

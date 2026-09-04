@@ -98,7 +98,7 @@ fcarch = executable(
   ['fcarch.c', 'fcarch.h', fcstdint_h, fclang_h],
   include_directories: [incbase, incsrc],
   c_args: c_args,
-  dependencies: [libintl_dep],
+  dependencies: [libintl_dep, fcint_dep],
   install: false,
   install_tag: 'runtime',
 )
