@@ -529,22 +529,43 @@ fcobjs_h = files('src/fcobjs.h')[0]
 subdir('fontconfig')
 
 
-alias_input_headers = [fontconfig_h, 'src/fcdeprecate.h', 'fontconfig/fcprivate.h']
+alias_input_headers = [
+  fontconfig_h,
+  'src/fcdeprecate.h',
+  'fontconfig/fcprivate.h',
+]
 if get_option('fontations').enabled()
   alias_input_headers += ['fontconfig/fcfontations.h']
 endif
 
-alias_headers = custom_target('alias_headers',
-                              output: ['fcalias.h', 'fcaliastail.h'],
-                              input: alias_input_headers,
-                              command: [python3, makealias, join_paths(meson.current_source_dir(), 'src'), '@OUTPUT@', '@INPUT@'],
-                             )
+alias_headers = custom_target(
+  'alias_headers',
+  output: ['fcalias.h', 'fcaliastail.h'],
+  input: alias_input_headers,
+  command: [
+    python3,
+    makealias,
+    join_paths(meson.current_source_dir(), 'src'),
+    '@OUTPUT@',
+    '@INPUT@',
+  ],
+)
 
-ft_alias_headers = custom_target('ft_alias_headers',
-                                 output: ['fcftalias.h', 'fcftaliastail.h'],
-                                 input: ['fontconfig/fcfreetype.h'],
-                                 command: [python3, makealias, join_paths(meson.current_source_dir(), 'src'), '@OUTPUT@', '@INPUT@']
-                                )
+ft_alias_headers = custom_target(
+  'ft_alias_headers',
+  output: ['fcftalias.h', 'fcftaliastail.h'],
+  input: ['fontconfig/fcfreetype.h'],
+  command: [
+    python3,
+    makealias,
+    join_paths(meson.current_source_dir(), 'src'),
+    '@OUTPUT@',
+    '@INPUT@',
+  ],
+)
+
+fcint_dep = declare_dependency(sources: [alias_headers, ft_alias_headers])
+deps += [fcint_dep]
 
 tools_man_pages = []
 
