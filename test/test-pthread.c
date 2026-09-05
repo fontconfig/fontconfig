@@ -43,8 +43,6 @@ test_match (int thr_num, int test_num)
     FcPattern *match;
     FcResult   result;
 
-    FcInit();
-
     pat = FcNameParse ((const FcChar8 *)"New Century Schoolbook");
 
     FcConfigSubstitute (0, pat, FcMatchPattern);

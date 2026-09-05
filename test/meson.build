@@ -42,6 +42,7 @@ if host_machine.system() != 'windows'
   tests_not_parallel += [
     # FIXME: this needs NotoSans-hinted.zip font downloaded and unpacked into test build directory! see run-test.sh
     ['test-crbug1004254.c', {'dependencies': dependency('threads')}], # for pthread
+    ['test-pthread.c', {'dependencies': dependency('threads')}], # for pthread
     ['test-mt-fccfg.c', {'include_directories': include_directories('../src'), 'dependencies': dependency('threads')}],
   ]
 

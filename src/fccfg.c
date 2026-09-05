@@ -86,19 +86,31 @@ free_lock (void)
 }
 
 static FcConfig *
+FcConfigEnsureLocked (void)
+{
+    FcConfig *config = fc_atomic_ptr_get (&_fcConfig);
+    if (!config) {
+	config = FcInitLoadConfigAndFonts();
+	if (config) {
+	    if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config)) {
+		FcConfigDestroy (config);
+		config = fc_atomic_ptr_get (&_fcConfig);
+	    }
+	}
+    }
+    return config;
+}
+
+static FcConfig *
 FcConfigEnsure (void)
 {
     FcConfig *config;
-retry:
+
     config = fc_atomic_ptr_get (&_fcConfig);
     if (!config) {
-	config = FcInitLoadConfigAndFonts();
-
-	if (!config || !fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config)) {
-	    if (config)
-		FcConfigDestroy (config);
-	    goto retry;
-	}
+	lock_config();
+	config = FcConfigEnsureLocked();
+	unlock_config();
     }
     return config;
 }
@@ -118,12 +130,15 @@ FcDestroyAsRuleSet (void *data)
 FcBool
 FcConfigInit (void)
 {
-    FcBool is_new = !!(_fcConfig == NULL);
+    FcBool is_new;
     FcBool ret;
 
-    ret = FcConfigEnsure() ? FcTrue : FcFalse;
+    lock_config();
+    is_new = (fc_atomic_ptr_get (&_fcConfig) == NULL);
+    ret = FcConfigEnsureLocked() ? FcTrue : FcFalse;
     if (ret && !is_new)
-	FcConfigReference (_fcConfig);
+	FcRefInc (&_fcConfig->ref);
+    unlock_config();
     return ret;
 }
 
@@ -334,21 +349,9 @@ FcConfigReference (FcConfig *config)
 	 * there are the race between them.
 	 */
 	lock_config();
-    retry:
-	config = fc_atomic_ptr_get (&_fcConfig);
-	if (!config) {
-	    unlock_config();
-
-	    config = FcInitLoadConfigAndFonts();
-	    lock_config();
-	    if (!config)
-		goto retry;
-	    if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config)) {
-		FcConfigDestroy (config);
-		goto retry;
-	    }
-	}
-	FcRefInc (&config->ref);
+	config = FcConfigEnsureLocked();
+	if (config)
+	    FcRefInc (&config->ref);
 	unlock_config();
     } else
 	FcRefInc (&config->ref);
