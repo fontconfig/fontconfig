@@ -922,6 +922,21 @@ FcCacheOffsetsValid (FcCache *cache)
 		    if ((char *)l < last_offset || (char *)l > end - sizeof (*l) ||
 		        (l->next != NULL && !FcIsEncodedOffset (l->next)))
 			return FcFalse;
+		    /* The checks below are driven by the type stored in the
+		     * value, whereas the users of a pattern pick the accessor
+		     * for a value by the object it belongs to. Reject values
+		     * whose type doesn't match the type registered for the
+		     * object, otherwise e.g. an integer stored for FC_FAMILY
+		     * would be accepted here without validating the union,
+		     * but dereferenced as a string later on.
+		     */
+		    if (!FcObjectValidType (e[j].object, l->value.type)) {
+			if (FcDebug() & FC_DBG_CACHE) {
+			    fprintf (stderr, "Fontconfig warning: invalid cache: value of type %d doesn't match the type of object %d\n",
+			             l->value.type, e[j].object);
+			}
+			return FcFalse;
+		    }
 		    switch (l->value.type) {
 		    case FcTypeVoid:
 		    case FcTypeInteger:
