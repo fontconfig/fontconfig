@@ -99,7 +99,20 @@ FcStrtod (char *s, char **end)
 FcChar8 *
 FcStrCopy (const FcChar8 *s)
 {
-#ifdef HAVE_STRDUP
+#ifdef HAVE_POSIX_MEMALIGN
+    /* See https://gitlab.freedesktop.org/fontconfig/fontconfig/-/work_items/569 */
+    size_t len = strlen ((const char *)s) + 1;
+    void  *ret;
+
+    if (posix_memalign (&ret, sizeof (void *), len) != 0)
+	return NULL;
+
+    return (FcChar8 *)memcpy (ret, s, len);
+#elif defined(HAVE_STRDUP)
+    /* Win32 doesn't have posix_memalign nor aligned_alloc.
+     * However, their allocator returns pointers that are
+     * always suitably aligned.
+     */
     return (FcChar8 *)strdup ((const char *)s);
 #else
     FcChar8 *ret;
