@@ -972,11 +972,20 @@ FcCacheOffsetsValid (FcCache *cache)
 
     fs = FcCacheSet (cache);
     if (fs) {
-	if (fs->nfont > (end - (char *)fs) / sizeof (FcPattern))
+	if (fs->nfont < 0 || fs->nfont > (end - (char *)fs) / sizeof (FcPattern))
 	    return FcFalse;
 
 	if (!FcIsEncodedOffset (fs->fonts))
 	    return FcFalse;
+
+	if (fs->nfont > 0) {
+	    FcPattern **fonts = FcFontSetFonts (fs);
+
+	    if ((char *)fonts < base ||
+	        (char *)fonts > end ||
+	        fs->nfont > (end - (char *)fonts) / sizeof (FcPattern *))
+		return FcFalse;
+	}
 
 	for (i = 0; i < fs->nfont; i++) {
 	    FcPattern       *font = FcFontSetFont (fs, i);
@@ -988,18 +997,19 @@ FcCacheOffsetsValid (FcCache *cache)
 	    const FcChar8   *s;
 
 	    if ((char *)font < base ||
-	        (char *)font > end - sizeof (FcFontSet) ||
+	        (char *)font > end - sizeof (FcPattern) ||
 	        font->elts_offset < 0 ||
 	        font->elts_offset > end - (char *)font ||
+	        font->num < 0 ||
 	        font->num > (end - (char *)font - font->elts_offset) / sizeof (FcPatternElt) ||
 	        !FcRefIsConst (&font->ref))
 		return FcFalse;
 
 	    e = FcPatternElts (font);
-	    if (e->values != 0 && !FcIsEncodedOffset (e->values))
-		return FcFalse;
 
 	    for (j = 0; j < font->num; j++) {
+		if (e[j].values != 0 && !FcIsEncodedOffset (e[j].values))
+		    return FcFalse;
 		last_offset = (char *)font + font->elts_offset;
 		for (l = FcPatternEltValues (&e[j]); l; l = FcValueListNext (l)) {
 		    if ((char *)l < last_offset || (char *)l > end - sizeof (*l) ||
@@ -1025,14 +1035,28 @@ FcCacheOffsetsValid (FcCache *cache)
 		    case FcTypeInteger:
 		    case FcTypeDouble:
 		    case FcTypeBool:
+			break; /* nop */
 		    case FcTypeMatrix:
 		    case FcTypeFTFace:
-			break; /* nop */
+			/* FcValueListSerialize never serializes FcMatrix or
+			 * FT_Face pointers; reject caches carrying them.
+			 */
+			if (FcDebug() & FC_DBG_CACHE) {
+			    fprintf (stderr, "Fontconfig warning: invalid cache: unserializable value type %d\n",
+			             l->value.type);
+			}
+			return FcFalse;
 		    case FcTypeString:
+			if (!FcIsEncodedOffset (l->value.u.s)) {
+			    if (FcDebug() & FC_DBG_CACHE) {
+				fprintf (stderr, "Fontconfig warning: invalid cache: broken string pointer\n");
+			    }
+			    return FcFalse;
+			}
 			s = FcValueString (&l->value);
-			if ((intptr_t)s < (intptr_t)&e[j] ||
-			    (intptr_t)&l->value > (intptr_t)end - sizeof (*l) ||
-			    !FcIsEncodedOffset (l->value.u.s)) {
+			if ((char *)s < (char *)&e[j] ||
+			    (char *)s >= end ||
+			    memchr (s, '\0', end - (char *)s) == NULL) {
 			    if (FcDebug() & FC_DBG_CACHE) {
 				fprintf (stderr, "Fontconfig warning: invalid cache: broken string pointer\n");
 			    }
@@ -1095,10 +1119,15 @@ FcCacheOffsetsValid (FcCache *cache)
 			}
 			break;
 		    case FcTypeLangSet:
+			if (!FcIsEncodedOffset (l->value.u.l)) {
+			    if (FcDebug() & FC_DBG_CACHE) {
+				fprintf (stderr, "Fontconfig warning: invalid cache: broken langset\n");
+			    }
+			    return FcFalse;
+			}
 			ls = FcValueLangSet (&l->value);
-			if ((intptr_t)ls < (intptr_t)&e[j] ||
-			    (intptr_t)&l->value > (intptr_t)end - sizeof (*l) ||
-			    !FcIsEncodedOffset (l->value.u.l)) {
+			if ((char *)ls < (char *)&e[j] ||
+			    (char *)ls > end - sizeof (*ls)) {
 			    if (FcDebug() & FC_DBG_CACHE) {
 				fprintf (stderr, "Fontconfig warning: invalid cache: broken langset\n");
 			    }
@@ -1113,10 +1142,15 @@ FcCacheOffsetsValid (FcCache *cache)
 			}
 			break;
 		    case FcTypeRange:
+			if (!FcIsEncodedOffset (l->value.u.r)) {
+			    if (FcDebug() & FC_DBG_CACHE) {
+				fprintf (stderr, "Fontconfig warning: invalid cache: broken range\n");
+			    }
+			    return FcFalse;
+			}
 			r = FcValueRange (&l->value);
-			if ((intptr_t)r < (intptr_t)&e[j] ||
-			    (intptr_t)&l->value > (intptr_t)end - sizeof (*l) ||
-			    !FcIsEncodedOffset (l->value.u.r)) {
+			if ((char *)r < (char *)&e[j] ||
+			    (char *)r > end - sizeof (*r)) {
 			    if (FcDebug() & FC_DBG_CACHE) {
 				fprintf (stderr, "Fontconfig warning: invalid cache: broken range\n");
 			    }
