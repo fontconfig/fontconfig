@@ -62,7 +62,10 @@ use read_fonts::{FileRef, FontRef, TableProvider};
 use std::path::{self, Path};
 
 use std::{
+    cell::Cell,
     ffi::{CStr, CString, OsStr},
+    fs::File,
+    io::Read,
     iter::IntoIterator,
     os::unix::ffi::OsStrExt,
 };
@@ -138,13 +141,35 @@ pub unsafe extern "C" fn add_patterns_to_fontset(
     font_set: *mut FcFontSet,
 ) -> libc::c_int {
     let font_path = unsafe { font_path_from_c_str(font_file).unwrap_or_default() };
-    let bytes = std::fs::read(&font_path).ok().unwrap_or_default();
 
+    // Reuse the allocation across files in a directory scan. An unusually
+    // large file should only need the extra storage while it is being parsed.
+    const MAX_RETAINED_CAPACITY: usize = 1024 * 1024;
+    thread_local! {
+        static READ_BUFFER: Cell<Vec<u8>> = const { Cell::new(Vec::new()) };
+    }
+    let mut bytes = READ_BUFFER.take();
+    let result = match File::open(&font_path).and_then(|mut file| file.read_to_end(&mut bytes)) {
+        Ok(_) => unsafe { add_patterns_from_bytes(&font_path, &bytes, font_set) },
+        Err(_) => 0,
+    };
+    if bytes.capacity() <= MAX_RETAINED_CAPACITY {
+        bytes.clear();
+        READ_BUFFER.set(bytes);
+    }
+    result
+}
+
+unsafe fn add_patterns_from_bytes(
+    font_path: &Path,
+    bytes: &[u8],
+    font_set: *mut FcFontSet,
+) -> libc::c_int {
     let decoded_woff2_bytes: Option<Vec<u8>> = {
         #[cfg(have_woff2)]
         {
             if bytes.starts_with(b"wOF2") {
-                decode_woff2(&bytes)
+                decode_woff2(bytes)
             } else {
                 None
             }
@@ -155,14 +180,14 @@ pub unsafe extern "C" fn add_patterns_to_fontset(
         }
     };
 
-    let font_bytes = decoded_woff2_bytes.as_deref().unwrap_or(bytes.as_slice());
+    let font_bytes = decoded_woff2_bytes.as_deref().unwrap_or(bytes);
     let fileref = FileRef::new(font_bytes).ok();
 
     let fonts = fonts_and_indices(fileref);
 
     let mut patterns_added: u32 = 0;
     for (font, ttc_index) in fonts {
-        for pattern in build_patterns_for_font(&font, &font_path, bytes.as_slice(), ttc_index) {
+        for pattern in build_patterns_for_font(&font, font_path, bytes, ttc_index) {
             unsafe {
                 if FcFontSetAdd(font_set, pattern) == 0 {
                     return 0;
@@ -176,15 +201,15 @@ pub unsafe extern "C" fn add_patterns_to_fontset(
         return 1;
     }
 
-    if type1::is_type1(&bytes) {
-        return type1::build_pattern_for_type1(&bytes, &font_path)
+    if type1::is_type1(bytes) {
+        return type1::build_pattern_for_type1(bytes, font_path)
             .map_or(0, |pattern| unsafe { FcFontSetAdd(font_set, pattern) });
     }
 
     // Fontations does not natively understand WOFF/WOFF2 compressed files;
     // if we are asked to scan one of those, only add wrapper information
     // and filename.
-    try_append_woff_pattern(font_set, bytes.as_slice(), &font_path).is_some() as libc::c_int
+    try_append_woff_pattern(font_set, bytes, font_path).is_some() as libc::c_int
 }
 
 /// Used for controlling FontConfig's behavior per font instance.
