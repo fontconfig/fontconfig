@@ -1774,7 +1774,13 @@ FcConfigMatchValueList (FcPattern   *p,
 	    e = 0;
 	}
 
-	if (t->object == FC_FAMILY_OBJECT && table) {
+	/*
+	 * The family table only holds strings. Other value types, e.g. the
+	 * void result of <name> on an unknown object, go through the generic
+	 * comparison below.
+	 */
+	if (t->object == FC_FAMILY_OBJECT && table &&
+	    value.type == FcTypeString) {
 	    op = FC_OP_GET_OP (t->op);
 	    if (op == FcOpEqual || op == FcOpListing) {
 		if (!FamilyTableLookup (table, t->op, FcValueString (&value))) {
