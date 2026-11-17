@@ -1,0 +1,34 @@
+{
+  "fonts": [
+    {
+      "family": "Test Family",
+      "style": "Regular",
+      "file": "/path/to/TestFamily.ttf",
+      "fontversion": 1
+    }
+  ],
+  "load_xml": [
+    "%test%/test-name-void-family.conf"
+  ],
+  "tests": [
+    {
+      "method": "pattern",
+      "query": {
+        "family": "Test Family"
+      },
+      "result": {
+        "family": "Test Family"
+      }
+    },
+    {
+      "method": "match",
+      "query": {
+        "family": "Test Family"
+      },
+      "result": {
+        "family": "Test Family",
+        "fontfeatures": "kern off"
+      }
+    }
+  ]
+}
