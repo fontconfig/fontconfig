@@ -1,11 +1,36 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.18.3
-                              2026-08-06
+                            Version 2.18.4
+                              2026-11-18
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.18.4
+
+Akira TAGOH (5):
+      Guard against mixing plain strings and triples in an FcStrSet
+      Fix uninitialized read from GNU stderror_r variant
+      Harden allocation-failure handling flagged by an OpenScanHub audit
+      Fix crash on odd-addreessed pattern strings
+      Fix out-of-bounds access in FcCharSetMerge when merging page 0xffff
+
+Dominik Röttsches (3):
+      Fix arbitrary free in cache validation
+      Add regression tests for cache value type validation
+      Validate cache value types against their object
+
+Jeremy Huddleston Sequoia (2):
+      Do not dereference a NULL glob string
+      Do not strip a current directory prefix off an absolute glob
+
+Thomas Anderson (1):
+      Validate unserializable types and value bounds in FcCacheOffsetsValid
+
+Tom Anderson (2):
+      Fix race during FcConfig initialization
+      Don't use the family table for non-string test values
 
 2.18.3
 
