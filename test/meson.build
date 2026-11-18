@@ -47,6 +47,7 @@ tests = [
   ['test-y2038.c', {'include_directories': include_directories('../src'), 'dependencies': libintl_dep}],
   ['test-versioned-conf.c'],
   ['test-issue77.c'],
+  ['test-charset-merge.c'],
 ]
 tests_build_only = [
   ['test-gen-testcache.c', {'include_directories': include_directories('../src'), 'dependencies': libintl_dep}],
