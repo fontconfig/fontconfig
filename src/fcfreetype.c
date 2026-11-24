@@ -2631,7 +2631,7 @@ FcFreeTypeSpacing (FT_Face face)
 	    continue;
 
 	ucs4 = FT_Get_First_Char (face, &glyph);
-	while (glyph != 0 && !clusters.overflow) {
+	while (glyph != 0 && ucs4 <= 0x10ffff && !clusters.overflow) {
 	    FT_Pos advance = 0;
 	    if (!FT_Get_Advance (face, glyph, load_flags, &advance))
 		FcAdvanceClustersAdd (&clusters, ucs4, advance);
@@ -2685,7 +2685,7 @@ FcFreeTypeCharSetAndSpacingInternal (FT_Face face, int *spacing)
 	    continue;
 
 	ucs4 = FT_Get_First_Char (face, &glyph);
-	while (glyph != 0) {
+	while (glyph != 0 && ucs4 <= 0x10ffff) {
 	    FcBool good = FcTrue;
 
 	    /* CID fonts built by Adobe used to make ASCII control chars to cid1
