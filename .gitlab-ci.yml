@@ -47,10 +47,10 @@ variables:
 # changing these will force rebuilding the associated image
 # Note: these tags have no meaning and are not tied to a particular
 # fontconfig version
-  ALPINE_TAG:    '2026-09-23.0-d97d318ba419'
-  FEDORA_TAG:    '2026-09-23.0-01aba56d900b'
-  FREEBSD_TAG:   '2026-09-23.0-e4509ce8edde'
-  MSYS2_TAG:     '2026-09-23.0-9b51ced6fc76'
+  ALPINE_TAG:    '2026-09-23.0-2f8d16169f34'
+  FEDORA_TAG:    '2026-09-23.0-471e738f1a35'
+  FREEBSD_TAG:   '2026-09-23.0-85ab2baaa4fa'
+  MSYS2_TAG:     '2026-09-23.0-a806a74fea9c'
 
   ALPINE_EXEC:   'bash .gitlab-ci/alpine-install.sh'
   FEDORA_EXEC:   'bash .gitlab-ci/fedora-install.sh'
@@ -214,7 +214,7 @@ msys2:latest@container-prep:
   variables:
     GIT_STRATEGY: none
     FDO_DISTRIBUTION_VERSION: 'latest'
-    FDO_DISTRIBUTION_PACKAGES: 'git mingw-w64-ucrt-x86_64-expat mingw-w64-ucrt-x86_64-freetype mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gperf mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-certifi mingw-w64-ucrt-x86_64-python-pip mingw-w64-ucrt-x86_64-python-yaml mingw-w64-ucrt-x86_64-woff2 mingw-w64-x86_64-expat mingw-w64-x86_64-freetype mingw-w64-x86_64-gcc mingw-w64-x86_64-gperf mingw-w64-x86_64-meson mingw-w64-x86_64-python mingw-w64-x86_64-python-certifi mingw-w64-x86_64-python-pip mingw-w64-x86_64-python-yaml mingw-w64-x86_64-woff2'
+    FDO_DISTRIBUTION_PACKAGES: 'git mingw-w64-ucrt-x86_64-expat mingw-w64-ucrt-x86_64-freetype mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gperf mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-certifi mingw-w64-ucrt-x86_64-python-pip mingw-w64-ucrt-x86_64-python-yaml mingw-w64-ucrt-x86_64-woff2'
     FDO_DISTRIBUTION_TAG: $MSYS2_TAG
     FDO_DISTRIBUTION_EXEC: $MSYS2_EXEC
 
@@ -803,25 +803,6 @@ t_msys2:latest:UCRT64:
     FC_BUILD_DISABLED: nls iconv
     FC_BUILD_NO_VENV: 1
     FC_BUILD_SH: msys2 -c
-
-
-t_msys2:latest:MINGW64:
-  stage: distro
-  extends:
-    - .build@template
-    - .fdo.distribution-image@msys2
-    - .fc_artifacts
-  variables:
-    FC_DISTRO_NAME: msys2
-    FDO_DISTRIBUTION_VERSION: 'latest'
-    FDO_DISTRIBUTION_TAG: $MSYS2_TAG
-    FC_BUILDSYS: meson
-    FC_BUILD_TYPE: static
-    FC_XML_BACKEND: expat
-    FC_BUILD_DISABLED: nls iconv
-    FC_BUILD_NO_VENV: 1
-    FC_BUILD_SH: msys2 -c
-    MSYSTEM: MINGW64
 
 
 #######################################
