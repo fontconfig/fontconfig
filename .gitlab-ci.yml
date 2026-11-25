@@ -47,10 +47,10 @@ variables:
 # changing these will force rebuilding the associated image
 # Note: these tags have no meaning and are not tied to a particular
 # fontconfig version
-  ALPINE_TAG:    '2026-09-23.0-ec274ade7c46'
-  FEDORA_TAG:    '2026-09-23.0-8f6b51eabf9d'
-  FREEBSD_TAG:   '2026-09-23.0-85b06fe24682'
-  MSYS2_TAG:     '2026-09-23.0-2d9f4689db45'
+  ALPINE_TAG:    '2026-09-23.0-d97d318ba419'
+  FEDORA_TAG:    '2026-09-23.0-01aba56d900b'
+  FREEBSD_TAG:   '2026-09-23.0-e4509ce8edde'
+  MSYS2_TAG:     '2026-09-23.0-9b51ced6fc76'
 
   ALPINE_EXEC:   'bash .gitlab-ci/alpine-install.sh'
   FEDORA_EXEC:   'bash .gitlab-ci/fedora-install.sh'
@@ -162,7 +162,7 @@ alpine:edge@container-prep:
   variables:
     GIT_STRATEGY: none
     FDO_DISTRIBUTION_VERSION: 'edge'
-    FDO_DISTRIBUTION_PACKAGES: 'freetype-dev expat-dev python3-dev gperf util-linux-dev json-c-dev curl bash py3-pip gcc ninja-build bubblewrap pkgconf musl-dev uuidgen woff2 woff2-dev'
+    FDO_DISTRIBUTION_PACKAGES: 'freetype-dev expat-dev python3-dev gperf util-linux-dev json-c-dev curl bash py3-pip gcc ninja-build bubblewrap pkgconf musl-dev uuidgen woff2 woff2-dev font-noto'
     FDO_DISTRIBUTION_TAG: $ALPINE_TAG
     FDO_DISTRIBUTION_EXEC: $ALPINE_EXEC
 

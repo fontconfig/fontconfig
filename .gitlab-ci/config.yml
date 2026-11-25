@@ -151,6 +151,7 @@ packages:
         "uuidgen",
         "woff2",
         "woff2-dev",
+        "font-noto",
       ]
   fedora:
     needed:
