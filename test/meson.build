@@ -32,6 +32,25 @@ else
   external_font_targets = []
 endif
 
+# A ready-to-use font environment for C tests that need fonts to look up but
+# do not set up their own config.  Opt in per test with
+# {'use_test_fonts': true}; the test then runs with FONTCONFIG_FILE pointing at
+# the downloaded testfonts, mirroring what the pytest harness does.  Tests that
+# refer to their own fonts and fonts.conf must NOT opt in, so nothing of theirs
+# is overridden.  When external fonts are unavailable the font set is empty, so
+# such tests should skip (exit 77) rather than fail.
+test_fonts_conf = configure_file(
+  input: 'fonts.conf.in',
+  output: 'test-fonts.conf',
+  configuration: {
+    'REMAPDIR': '',
+    'FONTDIR': join_paths(meson.project_build_root(), 'testfonts'),
+    'CACHEDIR': join_paths(meson.project_build_root(), 'test', 'fonts-cache'),
+  },
+)
+fc_test_fonts_env = environment()
+fc_test_fonts_env.set('FONTCONFIG_FILE', test_fonts_conf.full_path())
+
 tests = [
   ['test-bz89617.c', {'c_args': ['-DSRCDIR="@0@"'.format(meson.current_source_dir())]}],
   ['test-bz131804.c'],
@@ -120,10 +139,18 @@ foreach test_data : tests + tests_not_parallel + tests_build_only
   )
 
   if test_data not in tests_build_only
-    if test_data in tests
-      test(test_name, exe, timeout: 600, is_parallel: true)
+    is_par = test_data in tests
+    if opts.get('use_test_fonts', false)
+      test(
+        test_name,
+        exe,
+        timeout: 600,
+        is_parallel: is_par,
+        env: fc_test_fonts_env,
+        depends: external_font_targets,
+      )
     else
-      test(test_name, exe, timeout: 600, is_parallel: false)
+      test(test_name, exe, timeout: 600, is_parallel: is_par)
     endif
   endif
 endforeach
