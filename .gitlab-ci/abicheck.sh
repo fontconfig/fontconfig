@@ -61,9 +61,24 @@ if [ -d "$basebuilddir" ]; then
         git branch -D "abicheck_main_$curbranch"
     fi
 fi
-git fetch origin main
+# Determine the ABI baseline to diff against:
+#  - In CI merge-request pipelines, use the diff base (the commit this branch
+#    diverged from the target) fetched from the target project.  This works
+#    whether the pipeline runs on the upstream repo or a fork, and regardless
+#    of how the target branch is named -- unlike a hardcoded "origin main",
+#    which breaks on forks whose default branch is not "main".
+#  - Otherwise (local runs, or non-MR pipelines) fall back to origin's main,
+#    overridable via FC_ABI_BASELINE, so developers can still run this by hand.
+if [ -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA" ]; then
+    baseref="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+    git cat-file -e "$baseref^{commit}" 2>/dev/null \
+        || git fetch "${CI_MERGE_REQUEST_PROJECT_URL:?}.git" "$baseref"
+else
+    git fetch origin "${FC_ABI_BASELINE:-main}"
+    baseref=FETCH_HEAD
+fi
 
-git worktree add -b "abicheck_main_$curbranch" "$basebuilddir" FETCH_HEAD
+git worktree add -b "abicheck_main_$curbranch" "$basebuilddir" "$baseref"
 pushd "$basebuilddir"
 if [ ! -f "$cihomedir/build.py" ]; then
     buildcmd=($cihomedir/build.sh)

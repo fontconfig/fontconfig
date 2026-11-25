@@ -638,6 +638,9 @@ abicheck:
     FC_DISTRO_NAME: fedora
     FDO_DISTRIBUTION_VERSION: rawhide
     FDO_DISTRIBUTION_TAG: $FEDORA_TAG
+    # Need full history so the merge-request diff base commit (used as the
+    # ABI baseline) is present locally without an extra fetch.
+    GIT_DEPTH: 0
   needs:
     - fedora:rawhide@container-prep
     - build-meson shared libxml2
