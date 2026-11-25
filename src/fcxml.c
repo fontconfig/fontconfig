@@ -24,6 +24,7 @@
 
 #include "fcint.h"
 
+#include <inttypes.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <string.h>
@@ -739,7 +740,7 @@ FcConfigMessage (FcConfigParse *parse, FcConfigSeverity severe, const char *fmt,
     if (parse) {
 	if (parse->name)
 #if HAVE_XML_GETCURRENTLINENUMBER64
-	    fprintf (stderr, "Fontconfig %s: \"%s\", line %ld: ", s,
+	    fprintf (stderr, "Fontconfig %s: \"%s\", line %" PRIu64 ": ", s,
 	             parse->name, XML_GetCurrentLineNumber64 (parse->parser));
 #else
 	    fprintf (stderr, "Fontconfig %s: \"%s\", line %d: ", s,
@@ -747,7 +748,7 @@ FcConfigMessage (FcConfigParse *parse, FcConfigSeverity severe, const char *fmt,
 #endif
 	else
 #if HAVE_XML_GETCURRENTLINENUMBER64
-	    fprintf (stderr, "Fontconfig %s: line %ld: ", s,
+	    fprintf (stderr, "Fontconfig %s: line %" PRIu64 ": ", s,
 	             XML_GetCurrentLineNumber64 (parse->parser));
 #else
 	    fprintf (stderr, "Fontconfig %s: line %d: ", s,
