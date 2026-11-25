@@ -2407,9 +2407,9 @@ FcFreeTypeCharIndex (FT_Face face, FcChar32 ucs4)
 
 static inline int    fc_min (int a, int b) { return a <= b ? a : b; }
 static inline int    fc_max (int a, int b) { return a >= b ? a : b; }
-static inline FcBool fc_approximately_equal (int x, int y)
+static inline FcBool fc_approximately_equal (int64_t x, int64_t y)
 {
-    return abs (x - y) * 33 <= fc_max (abs (x), abs (y));
+    return llabs (x - y) * 33 <= FC_MAX (llabs (x), llabs (y));
 }
 
 /*
@@ -2526,7 +2526,7 @@ FcSpacingClassify (const int *value,
 	    return FC_SPACING_MONO;
 	/* Exactly two widths in a 2:1 ratio: DUAL. */
 	if (num == 2 &&
-	    fc_approximately_equal (fc_min (value[0], value[1]) * 2,
+	    fc_approximately_equal ((int64_t)fc_min (value[0], value[1]) * 2,
 	                            fc_max (value[0], value[1])))
 	    return FC_SPACING_DUAL;
     }
@@ -2556,7 +2556,7 @@ FcSpacingClassify (const int *value,
 	if (w <= 0)
 	    continue;
 	for (k = 0; k < num; k++) {
-	    int mult = (value[k] + w / 2) / w; /* nearest integer multiple */
+	    int64_t mult = ((int64_t)value[k] + w / 2) / w; /* nearest integer multiple */
 	    if (mult >= 1 && fc_approximately_equal (value[k], mult * w))
 		on_grid += count[k];
 	}
@@ -2578,7 +2578,7 @@ FcSpacingClassify (const int *value,
     for (i = 1; i < num; i++)
 	if (count[i] > count[dom])
 	    dom = i;
-    if (fc_approximately_equal (value[dom], 2 * best_w))
+    if (fc_approximately_equal (value[dom], 2 * (int64_t)best_w))
 	return FC_SPACING_DUAL;
     return FC_SPACING_MONO;
 }

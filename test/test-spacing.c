@@ -93,6 +93,11 @@ static const SpacingCase cases[] = {
     { "proportional Latin (no ASCII mono)", { 500, 600, 700, 800, 900, 1000 }, { 160, 170, 170, 170, 170, 160 }, 6, FcFalse, FcFalse, FC_SPACING_PROPORTIONAL },
     /* Too many distinct widths to be any cell grid. */
     { "overflow",                         { 100, 200 },             { 10, 10 },                2, FcTrue,  FcFalse, FC_SPACING_PROPORTIONAL },
+
+    /* Advances near INT_MAX, as a broken font matrix can give. */
+    { "huge advances",                    { 1100000000, 2000000000 }, { 10, 10 },              2, FcFalse, FcFalse, FC_SPACING_PROPORTIONAL },
+    { "huge grid advances",               { 1000000000, 2000000000, 1999999999 }, { 10, 10, 10 }, 3, FcFalse, FcTrue, FC_SPACING_MONO },
+    { "huge close advances",              { 1100000000, 1110000000, 1120000000 }, { 10, 10, 10 }, 3, FcFalse, FcTrue, FC_SPACING_MONO },
 };
 
 int
