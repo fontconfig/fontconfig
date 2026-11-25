@@ -35,10 +35,9 @@ endif
 # A ready-to-use font environment for C tests that need fonts to look up but
 # do not set up their own config.  Opt in per test with
 # {'use_test_fonts': true}; the test then runs with FONTCONFIG_FILE pointing at
-# the downloaded testfonts, mirroring what the pytest harness does.  Tests that
-# refer to their own fonts and fonts.conf must NOT opt in, so nothing of theirs
-# is overridden.  When external fonts are unavailable the font set is empty, so
-# such tests should skip (exit 77) rather than fail.
+# the downloaded testfonts, mirroring what the pytest harness does, so the test
+# itself needs no font or config setup.  This relies on tests-external-fonts;
+# opted-in tests are built but not run when that option is disabled.
 test_fonts_conf = configure_file(
   input: 'fonts.conf.in',
   output: 'test-fonts.conf',
@@ -141,14 +140,21 @@ foreach test_data : tests + tests_not_parallel + tests_build_only
   if test_data not in tests_build_only
     is_par = test_data in tests
     if opts.get('use_test_fonts', false)
-      test(
-        test_name,
-        exe,
-        timeout: 600,
-        is_parallel: is_par,
-        env: fc_test_fonts_env,
-        depends: external_font_targets,
-      )
+      # use_test_fonts relies on the downloaded testfonts, so it requires
+      # tests-external-fonts.  When that is disabled the test is still built
+      # (to catch compile errors) but not run, as it would have no fonts.
+      if get_option('tests-external-fonts').allowed()
+        test(
+          test_name,
+          exe,
+          timeout: 600,
+          is_parallel: is_par,
+          env: fc_test_fonts_env,
+          depends: external_font_targets,
+        )
+      else
+        message('test @0@ needs tests-external-fonts; built but not run'.format(test_name))
+      endif
     else
       test(test_name, exe, timeout: 600, is_parallel: is_par)
     endif
